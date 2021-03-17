@@ -179,7 +179,7 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
     
     float dist;
     
-    for(int i = 0; i < 1; ++i)
+    for(int i = 0; i < planes.length(); ++i)
 	{
  		if (type == 0 && index == i)
         {
@@ -196,7 +196,7 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
         }
     }
     
-    for(int i = 0; i < 2; ++i)
+    for(int i = 0; i < spheres.length(); ++i)
 	{
         if (type == 1 && index == i)
         {
