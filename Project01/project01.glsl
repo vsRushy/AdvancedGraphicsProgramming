@@ -214,7 +214,7 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
     
         if (intersect_sphere(pHit, shadowRay, spheres[i], dist, shadowSurfaceNormal, shadowPhit))
         {
-            if (dist > 0.0 && distanceToLight > dist)
+            if (dist > 0.0 && dist < distanceToLight)
             {
             	//finalColor *= 2.0 * ambient;
                 finalColor = vec3(0.0);
@@ -235,8 +235,6 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
     
     for(int bounce = 0; bounce < bounces; ++bounce)
     {
-        bool intersects = false;
-
         OUT vec3 surface_normal;
 
         float dist = 10000000.0;
