@@ -237,7 +237,7 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
     {
         OUT vec3 surface_normal;
 
-        float dist = 10000000.0;
+        float dist = 1e+10;
         OUT float object_hit_distance = dist;
 
         int current_type = -1;
