@@ -49,13 +49,14 @@ Camera camera = Camera(vec3(0.0, 0.0, -0.2), 0.6);
 const Material material01 = Material(0.5, 0.4, 70.0, 0.6, 1.0);
 const Material material02 = Material(0.4, 0.2, 120.0, 0.3, 1.0);
 
-Plane plane = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.2, 0.8), material01);
+Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.2, 0.8), material01);
 
 Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material01);
 Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material02);
 
 PointLight pointlight01 = PointLight(vec3(0.0, 0.2, -0.1), vec3(1.0, 1.0, 1.0), 10.0);
 
+Plane planes[1];
 Sphere spheres[2];
 PointLight pointlights[1];
 
@@ -63,6 +64,8 @@ PointLight pointlights[1];
 
 void setup()
 {
+    planes[0] = plane01;
+
     spheres[0] = sphere01;
     spheres[1] = sphere02;
     
@@ -100,14 +103,14 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
     float coeff = -dot(lightDir, surfaceNormal);
     
     vec3 ambient = material.ambience * objectColor;
-    
+
     vec3 diffuse = material.diffuse * max(coeff, 0.0) * objectColor * lightIntensity;
        
     vec3 halfwayDir = normalize(lightDir + viewDir);
     vec3 specular = pow(max(-dot(surfaceNormal, halfwayDir), 0.0), material.shininess) * material.specular * objectColor * lightIntensity;
     
     vec3 color = ambient + diffuse + specular;
-    //color = pow(color, vec3(0.4545454545));
+    color = pow(color, vec3(0.4545454545));
     
     return color;
 }
@@ -166,6 +169,52 @@ bool intersect_sphere(in vec3 origin, in vec3 direction, in Sphere sphere,
     return false;
 }
 
+void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int type, in int index)
+{
+    vec3 shadowSurfaceNormal;
+    vec3 shadowRay = pointlights[0].position - pHit;
+    vec3 shadowRayDirection = normalize(shadowRay);
+    float distanceToLight = sqrt(dot(shadowRay, shadowRay));
+    vec3 shadowPhit;
+    
+    float dist;
+    
+    for(int i = 0; i < 1; ++i)
+	{
+ 		if (type == 0 && index == i)
+        {
+            continue;
+        }
+        
+        if (intersect_plane(planes[i], pHit, shadowRay, dist, shadowPhit))
+        {    
+            if (dist < distanceToLight)
+            {                
+ 				//finalColor *= 2. * ambient;        
+                finalColor = vec3(0.0);
+            }
+        }
+    }
+    
+    for(int i = 0; i < 2; ++i)
+	{
+        if (type == 1 && index == i)
+        {
+            continue;  
+        }
+    
+        if (intersect_sphere(pHit, shadowRay, spheres[i], dist, shadowSurfaceNormal, shadowPhit))
+        {
+            if (dist > 0. && distanceToLight > dist)
+            {
+            	//finalColor *= 2. * ambient;
+                finalColor = vec3(0.0);
+            }
+        }
+    }
+}
+
+
 vec3 create_ray(in vec3 origin, in vec3 direction)
 {
     vec3 result = vec3(0.2);
@@ -177,13 +226,18 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
     
     OUT vec3 sphere_normal;
     
-    if(intersect_plane(plane, origin, direction, object_hit_distance, hit))
+    for(int i = 0; i < planes.length(); ++i)
     {
-        if(object_hit_distance < dist)
+        if(intersect_plane(planes[i], origin, direction, object_hit_distance, hit))
         {
-            //result = plane.color;
-            dist = object_hit_distance;
-            result = get_color(direction, hit, plane.color, pointlights[0], plane.normal, plane.material);
+            if(object_hit_distance < dist)
+            {
+                //result = planes[i].color;
+                dist = object_hit_distance;
+                result = get_color(direction, hit, planes[i].color, pointlights[0], planes[i].normal, planes[i].material);
+            
+                calculateShadow(hit, result, planes[i].material.ambience, 0, i);
+            }
         }
     }
     
@@ -196,6 +250,8 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
                 //result = spheres[i].color;
                 dist = object_hit_distance;
                 result = get_color(direction, hit, spheres[i].color, pointlights[0], sphere_normal, spheres[i].material);
+            
+                calculateShadow(hit, result, spheres[i].material.ambience, 1, i);
             }
         }
     }
