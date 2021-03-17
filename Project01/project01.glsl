@@ -60,6 +60,8 @@ Plane planes[1];
 Sphere spheres[2];
 PointLight pointlights[1];
 
+const int bounces = 2;
+
 /* ---------------------------- */
 
 void setup()
@@ -122,8 +124,15 @@ bool intersect_plane(in Plane plane, in vec3 origin, in vec3 rayDirection,
     if (denom < 1e-6)
     {
         vec3 p0l0 = plane.position - origin;
+
         hitDistance = dot(p0l0, plane.normal) / denom;
-        Phit = origin + rayDirection * hitDistance;
+
+        if(hitDistance >= 0.0)
+        {
+            Phit = origin + rayDirection * hitDistance;
+
+            return true;
+        }
         
         return (hitDistance >= 0.0); 
     }
@@ -190,7 +199,7 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
         {    
             if (dist < distanceToLight)
             {                
- 				//finalColor *= 2. * ambient;        
+ 				//finalColor *= 2.0 * ambient;        
                 finalColor = vec3(0.0);
             }
         }
@@ -205,58 +214,112 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
     
         if (intersect_sphere(pHit, shadowRay, spheres[i], dist, shadowSurfaceNormal, shadowPhit))
         {
-            if (dist > 0. && distanceToLight > dist)
+            if (dist > 0.0 && distanceToLight > dist)
             {
-            	//finalColor *= 2. * ambient;
+            	//finalColor *= 2.0 * ambient;
                 finalColor = vec3(0.0);
             }
         }
     }
 }
 
-
 vec3 create_ray(in vec3 origin, in vec3 direction)
 {
     vec3 result = vec3(0.2);
 
-    float dist = 10000000.0;; 
+    int previous_type = -1;
+    int previous_index = -1;
+
+    OUT vec3 hit = origin;
+    vec3 bounce_pass_hit;
     
-    OUT vec3 hit;
-    OUT float object_hit_distance = 0.0;
-    
-    OUT vec3 sphere_normal;
-    
-    for(int i = 0; i < planes.length(); ++i)
+    for(int bounce = 0; bounce < bounces; ++bounce)
     {
-        if(intersect_plane(planes[i], origin, direction, object_hit_distance, hit))
+        bool intersects = false;
+
+        OUT vec3 surface_normal;
+
+        float dist = 10000000.0;
+        OUT float object_hit_distance = dist;
+
+        int current_type = -1;
+        int current_index = -1;
+
+        vec3 bounce_pass_color;
+
+        for(int i = 0; i < planes.length(); ++i)
         {
-            if(object_hit_distance < dist)
+            if(previous_type == 0 && previous_index == i)
             {
-                //result = planes[i].color;
-                dist = object_hit_distance;
-                result = get_color(direction, hit, planes[i].color, pointlights[0], planes[i].normal, planes[i].material);
-            
-                calculateShadow(hit, result, planes[i].material.ambience, 0, i);
+                continue;
+            }
+
+            if(intersect_plane(planes[i], origin, direction, object_hit_distance, hit))
+            {
+                if(object_hit_distance < dist)
+                {
+                    //result = planes[i].color;
+                    dist = object_hit_distance;
+                    bounce_pass_color = get_color(direction, hit, planes[i].color, pointlights[0], planes[i].normal, planes[i].material);
+                    surface_normal = planes[i].normal;
+
+                    calculateShadow(hit, bounce_pass_color, planes[i].material.ambience, 0, i);
+
+                    current_type = 0;
+                    current_index = i;
+
+                    bounce_pass_hit = hit;
+                }
             }
         }
-    }
-    
-    for(int i = 0; i < spheres.length(); ++i)
-    {
-        if(intersect_sphere(origin, direction, spheres[i], object_hit_distance, sphere_normal, hit))
+        
+        for(int i = 0; i < spheres.length(); ++i)
         {
-            if(object_hit_distance < dist)
+            if(previous_type == 1 && previous_index == i)
             {
-                //result = spheres[i].color;
-                dist = object_hit_distance;
-                result = get_color(direction, hit, spheres[i].color, pointlights[0], sphere_normal, spheres[i].material);
-            
-                calculateShadow(hit, result, spheres[i].material.ambience, 1, i);
+                continue;
+            }
+
+            if(intersect_sphere(origin, direction, spheres[i], object_hit_distance, surface_normal, hit))
+            {
+                if(object_hit_distance < dist)
+                {
+                    //result = spheres[i].color;
+                    dist = object_hit_distance;
+                    bounce_pass_color = get_color(direction, hit, spheres[i].color, pointlights[0], surface_normal, spheres[i].material);
+                
+                    calculateShadow(hit, bounce_pass_color, spheres[i].material.ambience, 1, i);
+
+                    current_type = 1;
+                    current_index = i;
+
+                    bounce_pass_hit = hit;
+                }
             }
         }
+        
+        if(bounce == 0)
+        {
+            result = bounce_pass_color;
+        }
+        else
+        {
+            result += bounce_pass_color;
+        }
+
+        if(current_type < 0)
+        {
+            break;
+        }
+
+        origin = bounce_pass_hit/* + surface_normal * 1e-3*/;
+        direction = reflect(direction, surface_normal);
+
+        previous_type = current_type;
+        previous_index = current_index;
     }
     
-    return result;
+    return result / float(bounces);
 }
 
 /* ---------------------------- */
