@@ -8,7 +8,7 @@ struct Camera
     float focal_distance;
 };
 
-struct Material
+struct Material 
 {
     float diffuse;
     float specular;
@@ -17,7 +17,7 @@ struct Material
     float reflection;
 };
 
-struct Plane
+struct Plane 
 {
     vec3 position;
     vec3 normal;
@@ -233,6 +233,8 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
     OUT vec3 hit = origin;
     vec3 bounce_pass_hit;
     
+    bool has_intersected = false;
+    
     for(int bounce = 0; bounce < bounces; ++bounce)
     {
         OUT vec3 surface_normal;
@@ -244,7 +246,7 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         int current_index = -1;
 
         vec3 bounce_pass_color;
-
+        
         for(int i = 0; i < planes.length(); ++i)
         {
             if(previous_type == 0 && previous_index == i)
@@ -268,6 +270,8 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
 
                     bounce_pass_hit = hit;
                 }
+                
+                has_intersected = true;
             }
         }
         
@@ -293,6 +297,8 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
 
                     bounce_pass_hit = hit;
                 }
+                
+                has_intersected = true;
             }
         }
         
@@ -317,7 +323,14 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         previous_index = current_index;
     }
     
-    return result / float(bounces);
+    if(has_intersected)
+    {
+        return result / float(bounces);
+    }
+    else
+    {
+        return vec3(1.0);
+    }
 }
 
 /* ---------------------------- */
