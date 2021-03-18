@@ -8,7 +8,7 @@ struct Camera
     float focal_distance;
 };
 
-struct Material 
+struct Material
 {
     float diffuse;
     float specular;
@@ -17,7 +17,7 @@ struct Material
     float reflection;
 };
 
-struct Plane 
+struct Plane
 {
     vec3 position;
     vec3 normal;
@@ -225,7 +225,7 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
 
 vec3 create_ray(in vec3 origin, in vec3 direction)
 {
-    vec3 result = vec3(0.2);
+    vec3 result = vec3(0.0);
 
     int previous_type = -1;
     int previous_index = -1;
