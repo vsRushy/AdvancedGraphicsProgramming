@@ -112,7 +112,7 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
     vec3 specular = pow(max(-dot(surfaceNormal, halfwayDir), 0.0), material.shininess) * material.specular * objectColor * lightIntensity;
     
     vec3 color = ambient + diffuse + specular;
-    color = pow(color, vec3(0.4545454545));
+    //color = pow(color, vec3(0.4545454545));
     
     return color;
 }
@@ -199,8 +199,8 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
         {    
             if (dist < distanceToLight)
             {                
- 				//finalColor *= 2.0 * ambient;        
-                finalColor = vec3(0.0);
+ 				finalColor *= 2.0 * ambient;        
+                //finalColor = vec3(0.0);
             }
         }
     }
@@ -216,8 +216,8 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
         {
             if (dist > 0.0 && dist < distanceToLight)
             {
-            	//finalColor *= 2.0 * ambient;
-                finalColor = vec3(0.0);
+            	finalColor *= 2.0 * ambient;
+                //finalColor = vec3(0.0);
             }
         }
     }
@@ -261,6 +261,9 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
                     //result = planes[i].color;
                     dist = object_hit_distance;
                     bounce_pass_color = get_color(direction, hit, planes[i].color, pointlights[0], planes[i].normal, planes[i].material);
+                    
+                    bounce_pass_color += vec3(mod(floor(hit.x) - floor(hit.z), 2.0) == 0.0) + vec3(0.15);
+                    
                     surface_normal = planes[i].normal;
 
                     calculateShadow(hit, bounce_pass_color, planes[i].material.ambience, 0, i);
