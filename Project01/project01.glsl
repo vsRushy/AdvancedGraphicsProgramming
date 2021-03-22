@@ -354,7 +354,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     vec2 uv = fragCoord/iResolution.xy - 0.5;
     uv.x *= aspect_ratio;
 
-    camera.position = vec3(sin(iTime) * 3.0, 0.0, -cos(iTime) * 3.0);
+    camera.position = vec3(sin(iTime) * 1.0, 0.0, -cos(iTime) * 1.0);
     
     vec3 ray_origin = camera.position;
 
