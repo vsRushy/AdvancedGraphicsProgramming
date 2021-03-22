@@ -5,7 +5,13 @@
 struct Camera
 {
     vec3 position;
-    float focal_distance;
+
+    vec3 look_at;
+    vec3 forward;
+    vec3 right;
+    vec3 up;
+
+    float zoom;
 };
 
 struct Material 
@@ -44,7 +50,9 @@ struct PointLight
 
 /* ---------------------------- */
 
-Camera camera = Camera(vec3(0.0, 0.0, -0.2), 0.6);
+Camera camera = Camera(vec3(0.0, 0.0, -1.0), vec3(0.0),
+                       vec3(0.0), vec3(0.0), vec3(0.0),
+                       2.0);
 
 const Material material01 = Material(0.5, 0.4, 70.0, 0.6, 1.0);
 const Material material02 = Material(0.4, 0.2, 120.0, 0.3, 1.0);
@@ -345,11 +353,17 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     float aspect_ratio = iResolution.x / iResolution.y;
     vec2 uv = fragCoord/iResolution.xy - 0.5;
     uv.x *= aspect_ratio;
-    
-    vec3 near_clip_plane_position = vec3(uv.x, uv.y, camera.position.z + camera.focal_distance);
 
     vec3 ray_origin = camera.position;
-    vec3 ray_direction = normalize(near_clip_plane_position - ray_origin);
+
+    camera.forward = normalize(camera.look_at - ray_origin);
+    camera.right = cross(vec3(0.0, 1.0, 0.0), camera.forward);
+    camera.up = cross(camera.forward, camera.right);
+
+    vec3 center = ray_origin + camera.forward * camera.zoom;
+    vec3 intersection = center + uv.x * camera.right + uv.y * camera.up;
+
+    vec3 ray_direction = normalize(intersection - ray_origin);
     
     vec3 color = create_ray(ray_origin, ray_direction);
 
