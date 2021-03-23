@@ -340,7 +340,9 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
     }
     else
     {
-        return vec3(1.0);
+        vec3 top_color = vec3(0.8, 0.4, 1.0);
+        vec3 bot_color = vec3(0.85, 0.9, 1.0);
+        return mix(bot_color, top_color, direction.y);
     }
 }
 
