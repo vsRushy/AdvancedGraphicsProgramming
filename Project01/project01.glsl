@@ -1,11 +1,12 @@
 #define OUT
+#define ANTIALIASING
 
 /* ---------------------------- */
 
 struct Camera
 {
     vec3 position;
-
+    
     vec3 look_at;
     vec3 forward;
     vec3 right;
@@ -369,6 +370,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 
     vec3 center = ray_origin + camera.forward * camera.zoom;
     
+#ifdef ANTIALIASING
     vec3 intersection1 = center + (uv.x - 0.001) * camera.right + uv.y * camera.up;
     vec3 intersection2 = center + (uv.x + 0.001) * camera.right + uv.y * camera.up;
     vec3 intersection3 = center + uv.x * camera.right + (uv.y - 0.001) * camera.up;
@@ -384,7 +386,14 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     vec3 color3 = create_ray(ray_origin, ray_direction3);
     vec3 color4 = create_ray(ray_origin, ray_direction4);
     
-    vec3 color = (color1 + color2 + color3 + color4) / 4.0; 
+    vec3 color = (color1 + color2 + color3 + color4) / 4.0;
+#else
+    vec3 intersection = center + (uv.x) * camera.right + uv.y * camera.up;
+    
+    vec3 ray_direction = normalize(intersection - ray_origin);
+    
+    vec3 color = create_ray(ray_origin, ray_direction);
+#endif
 
     fragColor = vec4(color, 1.0);
 }
