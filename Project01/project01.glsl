@@ -1,5 +1,16 @@
 #define OUT
+
+// Undefine the following for no anti-aliasing
 #define ANTIALIASING
+
+/* Plane types */
+#define PLANE_CHECKERS    1
+#define PLANE_CLOUDS      2
+
+/* Color types */
+#define PLAIN       0
+#define CHECKERS    1
+#define CLOUDS      2
 
 /* ---------------------------- */
 
@@ -29,6 +40,8 @@ struct Plane
     vec3 position;
     vec3 normal;
     vec3 color;
+
+    int type;
     
     Material material;
 };
@@ -58,8 +71,10 @@ Camera camera = Camera(vec3(0.0, 0.0, -2.0), vec3(0.0),
 const Material material01 = Material(0.5, 0.4, 70.0, 0.6, 1.0);
 const Material material02 = Material(0.4, 0.2, 120.0, 0.3, 1.0);
 const Material material03 = Material(0.2, 0.1, 100.0, 0.4, 1.0);
+const Material material04 = Material(0.3, 0.5, 60.0, 0.5, 0.0);
 
-Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.2, 0.8), material01);
+Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.2, 0.8), PLANE_CHECKERS, material04);
+Plane plane02 = Plane(vec3(0.0, 0.2, 0.0), vec3(0.0, -1.0, 0.0), vec3(1.0, 0.5, 0.1), PLANE_CLOUDS, material04);
 
 Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material01);
 Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material02);
@@ -67,7 +82,7 @@ Sphere sphere03 = Sphere(vec3(0.5, 0.0, 0.0), 0.2, vec3(0.8, 0.6, 0.0), material
 
 PointLight pointlight01 = PointLight(vec3(0.0, 0.2, -0.1), vec3(1.0, 1.0, 1.0), 10.0);
 
-Plane planes[1];
+Plane planes[2];
 Sphere spheres[3];
 PointLight pointlights[1];
 
@@ -78,6 +93,7 @@ const int bounces = 2;
 void setup()
 {
     planes[0] = plane01;
+    planes[1] = plane02;
 
     spheres[0] = sphere01;
     spheres[1] = sphere02;
@@ -107,7 +123,17 @@ bool solve_quadratic(in float a, in float b, in float c, out float t0, out float
     return true;    
 }
 
-vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColor, in PointLight pointLight, in vec3 surfaceNormal, in Material material)
+vec3 apply_checkers(in vec3 color, in vec3 hit)
+{
+    return vec3(mod(floor(hit.x) - floor(hit.z), 2.0) == 0.0) * color;
+}
+
+vec3 apply_clouds(in vec3 color, in vec3 hit)
+{
+    return color;
+}
+
+vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColor, in PointLight pointLight, in vec3 surfaceNormal, in Material material, in int color_type)
 {
     vec3 lightVector = surfacePointPosition - pointLight.position;
     vec3 lightDir = normalize(lightVector);   
@@ -122,11 +148,40 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
        
     vec3 halfwayDir = normalize(lightDir + viewDir);
     vec3 specular = pow(max(-dot(surfaceNormal, halfwayDir), 0.0), material.shininess) * material.specular * objectColor * lightIntensity;
-    
-    vec3 color = ambient + diffuse + specular;
+
+    vec3 color = vec3(ambient + diffuse + specular);
     //color = pow(color, vec3(0.4545454545));
+
+    vec3 final_color = vec3(0.0);
+
+    switch(color_type)
+    {
+        case PLAIN:
+        {
+            final_color = color;
+        }
+        break;
+
+        case CHECKERS:
+        {
+            final_color = apply_checkers(color, surfacePointPosition);
+        }
+        break;
+
+        case CLOUDS:
+        {
+            final_color = apply_clouds(color, surfacePointPosition);
+        }
+        break;
+
+        default:
+        {
+            final_color = color;
+        }
+        break;
+    }
     
-    return color;
+    return final_color;
 }
 
 bool intersect_plane(in Plane plane, in vec3 origin, in vec3 rayDirection,
@@ -272,10 +327,25 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
                 {
                     //result = planes[i].color;
                     dist = object_hit_distance;
-                    bounce_pass_color = get_color(direction, hit, planes[i].color, pointlights[0], planes[i].normal, planes[i].material);
                     
-                    bounce_pass_color += vec3(mod(floor(hit.x) - floor(hit.z), 2.0) == 0.0) + vec3(0.15);
-                    
+                    switch(planes[i].type)
+                    {
+                        case PLANE_CHECKERS:
+                        {
+                            bounce_pass_color = get_color(direction, hit, planes[i].color, pointlights[0], planes[i].normal, planes[i].material, CHECKERS);
+                        }
+                        break;
+                        
+                        case PLANE_CLOUDS:
+                        {
+                            bounce_pass_color = get_color(direction, hit, planes[i].color, pointlights[0], planes[i].normal, planes[i].material, CLOUDS);
+                        }
+                        break;
+
+                        default:
+                        {}  break;
+                    }
+
                     surface_normal = planes[i].normal;
 
                     calculateShadow(hit, bounce_pass_color, planes[i].material.ambience, 0, i);
@@ -303,7 +373,7 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
                 {
                     //result = spheres[i].color;
                     dist = object_hit_distance;
-                    bounce_pass_color = get_color(direction, hit, spheres[i].color, pointlights[0], surface_normal, spheres[i].material);
+                    bounce_pass_color = get_color(direction, hit, spheres[i].color, pointlights[0], surface_normal, spheres[i].material, PLAIN);
                 
                     calculateShadow(hit, bounce_pass_color, spheres[i].material.ambience, 1, i);
 
