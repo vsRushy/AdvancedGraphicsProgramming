@@ -1,6 +1,10 @@
 #define OUT
 #define ANTIALIASING
 
+#define MAX_PLANES          2
+#define MAX_SPHERES         3
+#define MAX_POINTLIGHTS     1
+
 /* ---------------------------- */
 
 struct Camera
@@ -58,8 +62,10 @@ Camera camera = Camera(vec3(0.0, 0.0, -2.0), vec3(0.0),
 const Material material01 = Material(0.5, 0.4, 70.0, 0.6, 1.0);
 const Material material02 = Material(0.4, 0.2, 120.0, 0.3, 1.0);
 const Material material03 = Material(0.2, 0.1, 100.0, 0.4, 1.0);
+const Material material04 = Material(0.2, 0.1, 100.0, 0.4, 0.0);
 
 Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.2, 0.8), material01);
+Plane plane02 = Plane(vec3(0.0, 0.5, 0.0), vec3(0.0, -1.0, 0.0), vec3(0.0, 0.2, 0.8), material04);
 
 Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material01);
 Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material02);
@@ -67,9 +73,9 @@ Sphere sphere03 = Sphere(vec3(0.5, 0.0, 0.0), 0.2, vec3(0.8, 0.6, 0.0), material
 
 PointLight pointlight01 = PointLight(vec3(0.0, 0.2, -0.1), vec3(1.0, 1.0, 1.0), 10.0);
 
-Plane planes[1];
-Sphere spheres[3];
-PointLight pointlights[1];
+Plane planes[MAX_PLANES];
+Sphere spheres[MAX_SPHERES];
+PointLight pointlights[MAX_POINTLIGHTS];
 
 const int bounces = 2;
 
@@ -78,6 +84,7 @@ const int bounces = 2;
 void setup()
 {
     planes[0] = plane01;
+    planes[1] = plane02;
 
     spheres[0] = sphere01;
     spheres[1] = sphere02;
@@ -142,7 +149,7 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
     vec3 specular = pow(max(-dot(surfaceNormal, halfwayDir), 0.0), material.shininess) * material.specular * objectColor * lightIntensity;
     
     vec3 color = ambient + diffuse + specular;
-    //color = pow(color, vec3(0.4545454545));
+    color = pow(color, vec3(0.4545454545));
     
     return color;
 }
