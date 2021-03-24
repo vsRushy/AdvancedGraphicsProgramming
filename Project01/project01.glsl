@@ -67,9 +67,9 @@ const Material material04 = Material(0.2, 0.1, 100.0, 0.4, 0.0);
 Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.2, 0.8), material01);
 Plane plane02 = Plane(vec3(0.0, 0.5, 0.0), vec3(0.0, -1.0, 0.0), vec3(0.0, 0.2, 0.8), material04);
 
-Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material01);
-Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material02);
-Sphere sphere03 = Sphere(vec3(0.5, 0.0, 0.0), 0.2, vec3(0.8, 0.6, 0.0), material03);
+Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material04);
+Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material04);
+Sphere sphere03 = Sphere(vec3(0.5, 0.0, 0.0), 0.2, vec3(0.8, 0.6, 0.0), material04);
 
 PointLight pointlight01 = PointLight(vec3(0.0, 0.2, -0.1), vec3(1.0, 1.0, 1.0), 10.0);
 
