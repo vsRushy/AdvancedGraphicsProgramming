@@ -50,22 +50,24 @@ struct PointLight
 
 /* ---------------------------- */
 
-Camera camera = Camera(vec3(0.0, 0.0, -1.0), vec3(0.0),
+Camera camera = Camera(vec3(0.0, 0.0, -2.0), vec3(0.0),
                        vec3(0.0), vec3(0.0), vec3(0.0),
                        2.0);
 
 const Material material01 = Material(0.5, 0.4, 70.0, 0.6, 1.0);
 const Material material02 = Material(0.4, 0.2, 120.0, 0.3, 1.0);
+const Material material03 = Material(0.2, 0.1, 100.0, 0.4, 1.0);
 
 Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.2, 0.8), material01);
 
 Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material01);
 Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material02);
+Sphere sphere03 = Sphere(vec3(0.5, 0.0, 0.0), 0.2, vec3(0.8, 0.6, 0.0), material03);
 
 PointLight pointlight01 = PointLight(vec3(0.0, 0.2, -0.1), vec3(1.0, 1.0, 1.0), 10.0);
 
 Plane planes[1];
-Sphere spheres[2];
+Sphere spheres[3];
 PointLight pointlights[1];
 
 const int bounces = 2;
@@ -78,6 +80,7 @@ void setup()
 
     spheres[0] = sphere01;
     spheres[1] = sphere02;
+    spheres[2] = sphere03;
     
     pointlights[0] = pointlight01;
 }
@@ -365,11 +368,23 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     camera.up = cross(camera.forward, camera.right);
 
     vec3 center = ray_origin + camera.forward * camera.zoom;
-    vec3 intersection = center + uv.x * camera.right + uv.y * camera.up;
-
-    vec3 ray_direction = normalize(intersection - ray_origin);
     
-    vec3 color = create_ray(ray_origin, ray_direction);
+    vec3 intersection1 = center + (uv.x - 0.001) * camera.right + uv.y * camera.up;
+    vec3 intersection2 = center + (uv.x + 0.001) * camera.right + uv.y * camera.up;
+    vec3 intersection3 = center + uv.x * camera.right + (uv.y - 0.001) * camera.up;
+    vec3 intersection4 = center + uv.x * camera.right + (uv.y + 0.001) * camera.up;
+
+    vec3 ray_direction1 = normalize(intersection1 - ray_origin);
+    vec3 ray_direction2 = normalize(intersection2 - ray_origin);
+    vec3 ray_direction3 = normalize(intersection3 - ray_origin);
+    vec3 ray_direction4 = normalize(intersection4 - ray_origin);
+    
+    vec3 color1 = create_ray(ray_origin, ray_direction1);
+    vec3 color2 = create_ray(ray_origin, ray_direction2);
+    vec3 color3 = create_ray(ray_origin, ray_direction3);
+    vec3 color4 = create_ray(ray_origin, ray_direction4);
+    
+    vec3 color = (color1 + color2 + color3 + color4) / 4.0; 
 
     fragColor = vec4(color, 1.0);
 }
