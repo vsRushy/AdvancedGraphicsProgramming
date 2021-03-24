@@ -111,13 +111,13 @@ Material get_material(int index, int type)
 {
     switch(type)
     {
-        case 1:
+        case 0:
         {
             return planes[index].material;
         }
         break;
 
-        case 2:
+        case 1:
         {
             return spheres[index].material;
         }
