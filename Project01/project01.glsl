@@ -341,7 +341,7 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         }
         else
         {
-            result += get_material(current_type, current_index).specular * bounce_pass_color;
+            result += get_material(current_type, current_index).specular * get_material(current_type, current_index).reflection  * bounce_pass_color;
         }
 
         if(current_type < 0)
