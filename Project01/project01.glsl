@@ -107,6 +107,24 @@ bool solve_quadratic(in float a, in float b, in float c, out float t0, out float
     return true;    
 }
 
+Material get_material(int index, int type)
+{
+    switch(type)
+    {
+        case 1:
+        {
+            return planes[index].material;
+        }
+        break;
+
+        case 2:
+        {
+            return spheres[index].material;
+        }
+        break;
+    }
+}
+
 vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColor, in PointLight pointLight, in vec3 surfaceNormal, in Material material)
 {
     vec3 lightVector = surfacePointPosition - pointLight.position;
@@ -319,11 +337,11 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         
         if(bounce == 0)
         {
-            result = bounce_pass_color;
+            result += bounce_pass_color;
         }
         else
         {
-            result += bounce_pass_color;
+            result += get_material(current_type, current_index).specular * bounce_pass_color;
         }
 
         if(current_type < 0)
