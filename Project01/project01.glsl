@@ -1,9 +1,19 @@
 #define OUT
+
+// Undefine for no anti-aliasing
 #define ANTIALIASING
 
 #define MAX_PLANES          2
 #define MAX_SPHERES         3
 #define MAX_POINTLIGHTS     1
+
+#define TYPE_PLANE          0
+#define TYPE_SPHERE         1
+
+#define PLANE_CHECKERS      1
+#define PLANE_CLOUDS        2
+
+
 
 /* ---------------------------- */
 
@@ -33,6 +43,8 @@ struct Plane
     vec3 position;
     vec3 normal;
     vec3 color;
+
+    int type;
     
     Material material;
 };
@@ -55,17 +67,15 @@ struct PointLight
 
 /* ---------------------------- */
 
-Camera camera = Camera(vec3(0.0, 0.0, -2.0), vec3(0.0),
-                       vec3(0.0), vec3(0.0), vec3(0.0),
-                       2.0);
+Camera camera = Camera(vec3(0.0, 0.0, -2.0), vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), 2.0);
 
 const Material material01 = Material(0.5, 0.4, 70.0, 0.6, 1.0);
 const Material material02 = Material(0.4, 0.2, 120.0, 0.3, 1.0);
 const Material material03 = Material(0.2, 0.1, 100.0, 0.4, 1.0);
 const Material material04 = Material(0.2, 0.1, 100.0, 0.4, 0.0);
 
-Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.2, 0.8), material01);
-Plane plane02 = Plane(vec3(0.0, 0.5, 0.0), vec3(0.0, -1.0, 0.0), vec3(0.0, 0.2, 0.8), material04);
+Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.2, 0.8), PLANE_CHECKERS, material01);
+Plane plane02 = Plane(vec3(0.0, 0.5, 0.0), vec3(0.0, -1.0, 0.0), vec3(0.0, 0.2, 0.8), PLANE_CLOUDS, material04);
 
 Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material04);
 Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material04);
@@ -111,20 +121,20 @@ bool solve_quadratic(in float a, in float b, in float c, out float t0, out float
     t0 = (-b + sqrt(disc)) / (2.0 * a);
     t1 = (-b - sqrt(disc)) / (2.0 * a);
     
-    return true;    
+    return true;
 }
 
-Material get_material(int index, int type)
+Material get_material(in int index, in int type)
 {
     switch(type)
     {
-        case 0:
+        case TYPE_PLANE:
         {
             return planes[index].material;
         }
         break;
 
-        case 1:
+        case TYPE_SPHERE:
         {
             return spheres[index].material;
         }
@@ -154,8 +164,7 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
     return color;
 }
 
-bool intersect_plane(in Plane plane, in vec3 origin, in vec3 rayDirection,
-                     out float hitDistance, out vec3 Phit) 
+bool intersect_plane(in Plane plane, in vec3 origin, in vec3 rayDirection, out float hitDistance, out vec3 Phit) 
 { 
     float denom = dot(plane.normal, rayDirection);
     if (denom < 1e-6)
@@ -177,8 +186,7 @@ bool intersect_plane(in Plane plane, in vec3 origin, in vec3 rayDirection,
     return false;
 }
 
-bool intersect_sphere(in vec3 origin, in vec3 direction, in Sphere sphere,
-                      out float dist, out vec3 surfaceNormal, out vec3 Phit)
+bool intersect_sphere(in vec3 origin, in vec3 direction, in Sphere sphere, out float dist, out vec3 surfaceNormal, out vec3 Phit)
 {
     vec3 L = origin - sphere.position;
     
@@ -227,7 +235,7 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
     
     for(int i = 0; i < planes.length(); ++i)
 	{
- 		if (type == 0 && index == i)
+ 		if (type == TYPE_PLANE && index == i)
         {
             continue;
         }
@@ -244,7 +252,7 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
     
     for(int i = 0; i < spheres.length(); ++i)
 	{
-        if (type == 1 && index == i)
+        if (type == TYPE_SPHERE && index == i)
         {
             continue;  
         }
@@ -286,7 +294,7 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         
         for(int i = 0; i < planes.length(); ++i)
         {
-            if(previous_type == 0 && previous_index == i)
+            if(previous_type == TYPE_PLANE && previous_index == i)
             {
                 continue;
             }
@@ -303,9 +311,9 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
                     
                     surface_normal = planes[i].normal;
 
-                    calculateShadow(hit, bounce_pass_color, planes[i].material.ambience, 0, i);
+                    calculateShadow(hit, bounce_pass_color, planes[i].material.ambience, TYPE_PLANE, i);
 
-                    current_type = 0;
+                    current_type = TYPE_PLANE;
                     current_index = i;
 
                     bounce_pass_hit = hit;
@@ -317,7 +325,7 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         
         for(int i = 0; i < spheres.length(); ++i)
         {
-            if(previous_type == 1 && previous_index == i)
+            if(previous_type == TYPE_SPHERE && previous_index == i)
             {
                 continue;
             }
@@ -330,9 +338,9 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
                     dist = object_hit_distance;
                     bounce_pass_color = get_color(direction, hit, spheres[i].color, pointlights[0], surface_normal, spheres[i].material);
                 
-                    calculateShadow(hit, bounce_pass_color, spheres[i].material.ambience, 1, i);
+                    calculateShadow(hit, bounce_pass_color, spheres[i].material.ambience, TYPE_SPHERE, i);
 
-                    current_type = 1;
+                    current_type = TYPE_SPHERE;
                     current_index = i;
 
                     bounce_pass_hit = hit;
@@ -348,7 +356,8 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         }
         else
         {
-            result += get_material(current_type, current_index).specular * get_material(current_type, current_index).reflection  * bounce_pass_color;
+            Material mat = get_material(current_type, current_index);
+            result += mat.specular * mat.reflection  * bounce_pass_color;
         }
 
         if(current_type < 0)
