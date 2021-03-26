@@ -305,10 +305,33 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
                 {
                     //result = planes[i].color;
                     dist = object_hit_distance;
-                    bounce_pass_color = get_color(direction, hit, planes[i].color, pointlights[0], planes[i].normal, planes[i].material);
+                    //bounce_pass_color = get_color(direction, hit, planes[i].color, pointlights[0], planes[i].normal, planes[i].material);
                     
-                    bounce_pass_color += vec3(mod(floor(hit.x) - floor(hit.z), 2.0) == 0.0) + vec3(0.15);
-                    
+                    switch(planes[i].type)
+                    {
+                        case PLANE_CHECKERS:
+                        {
+                            if(mod(floor(hit.x) - floor(hit.z), 2.0) == 0.0)
+                            {
+                                bounce_pass_color = get_color(direction, hit, planes[i].color, pointlights[0], planes[i].normal, planes[i].material);
+                            }
+                            else
+                            {
+                                bounce_pass_color = get_color(direction, hit, vec3(1.0), pointlights[0], planes[i].normal, planes[i].material);
+                            }
+                        }
+                        break;
+
+                        case PLANE_CLOUDS:
+                        {
+
+                        }
+                        break;
+
+                        default:
+                        {} break;
+                    }
+
                     surface_normal = planes[i].normal;
 
                     calculateShadow(hit, bounce_pass_color, planes[i].material.ambience, TYPE_PLANE, i);
