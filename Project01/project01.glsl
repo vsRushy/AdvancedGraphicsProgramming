@@ -69,12 +69,12 @@ struct PointLight
 
 Camera camera = Camera(vec3(0.0, 0.0, -2.0), vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), 2.0);
 
-const Material material01 = Material(0.5, 0.4, 70.0, 0.6, 1.0);
-const Material material02 = Material(0.4, 0.2, 120.0, 0.3, 1.0);
-const Material material03 = Material(0.2, 0.1, 100.0, 0.4, 1.0);
-const Material material04 = Material(0.2, 0.1, 100.0, 0.4, 0.0);
+const Material material01 = Material(1.0, 1.0, 100.0, 1.0, 1.0);
+const Material material02 = Material(0.4, 1.0, 120.0, 0.3, 1.0);
+const Material material03 = Material(0.2, 1.0, 100.0, 0.4, 1.0);
+const Material material04 = Material(0.2, 1.0, 100.0, 0.4, 0.0);
 
-Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0, 0.2, 0.8), PLANE_CHECKERS, material01);
+Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0), PLANE_CHECKERS, material01);
 Plane plane02 = Plane(vec3(0.0, 0.5, 0.0), vec3(0.0, -1.0, 0.0), vec3(0.0, 0.2, 0.8), PLANE_CLOUDS, material04);
 
 Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material04);
@@ -305,8 +305,7 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
                 {
                     //result = planes[i].color;
                     dist = object_hit_distance;
-                    //bounce_pass_color = get_color(direction, hit, planes[i].color, pointlights[0], planes[i].normal, planes[i].material);
-                    
+
                     switch(planes[i].type)
                     {
                         case PLANE_CHECKERS:
@@ -379,8 +378,8 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         }
         else
         {
-            Material mat = get_material(current_type, current_index);
-            result += mat.specular * mat.reflection  * bounce_pass_color;
+            Material mat = get_material(previous_type, previous_index);
+            result += mat.specular * bounce_pass_color;
         }
 
         if(current_type < 0)
