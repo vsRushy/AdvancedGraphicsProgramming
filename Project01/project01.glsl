@@ -3,7 +3,7 @@
 // Undefine for no anti-aliasing
 #define ANTIALIASING
 
-#define MAX_PLANES          2
+#define MAX_PLANES          1
 #define MAX_SPHERES         3
 #define MAX_POINTLIGHTS     1
 
@@ -36,6 +36,8 @@ struct Material
     float shininess;
     float ambience;
     float reflection;
+    bool reflective;
+    bool refractive;
 };
 
 struct Plane 
@@ -69,16 +71,17 @@ struct PointLight
 
 Camera camera = Camera(vec3(0.0, 0.0, -2.0), vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), 2.0);
 
-const Material material01 = Material(1.0, 1.0, 100.0, 1.0, 1.0);
-const Material material02 = Material(0.4, 1.0, 120.0, 0.3, 1.0);
-const Material material03 = Material(0.2, 1.0, 100.0, 0.4, 1.0);
-const Material material04 = Material(0.2, 1.0, 100.0, 0.4, 0.0);
+const Material material01 = Material(1.0, 1.0, 100.0, 1.0, 1.0, true, false);
+const Material material02 = Material(0.4, 1.0, 120.0, 0.3, 1.0, true, false);
+const Material material03 = Material(0.2, 1.0, 100.0, 0.4, 1.0, true, false);
+const Material material04 = Material(0.2, 1.0, 100.0, 0.4, 0.0, true, false);
+const Material material05 = Material(0.3, 1.0, 90.0, 0.5, 1.0, false, true);
 
 Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0), PLANE_CHECKERS, material01);
-Plane plane02 = Plane(vec3(0.0, 0.5, 0.0), vec3(0.0, -1.0, 0.0), vec3(0.0, 0.2, 0.8), PLANE_CLOUDS, material04);
+//Plane plane02 = Plane(vec3(0.0, 0.5, 0.0), vec3(0.0, -1.0, 0.0), vec3(0.0, 0.2, 0.8), PLANE_CLOUDS, material02);
 
-Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material04);
-Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material04);
+Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material05);
+Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material05);
 Sphere sphere03 = Sphere(vec3(0.5, 0.0, 0.0), 0.2, vec3(0.8, 0.6, 0.0), material04);
 
 PointLight pointlight01 = PointLight(vec3(0.0, 0.2, -0.1), vec3(1.0, 1.0, 1.0), 10.0);
@@ -94,7 +97,7 @@ const int bounces = 2;
 void setup()
 {
     planes[0] = plane01;
-    planes[1] = plane02;
+    //planes[1] = plane02;
 
     spheres[0] = sphere01;
     spheres[1] = sphere02;
@@ -159,7 +162,7 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
     vec3 specular = pow(max(-dot(surfaceNormal, halfwayDir), 0.0), material.shininess) * material.specular * objectColor * lightIntensity;
     
     vec3 color = ambient + diffuse + specular;
-    color = pow(color, vec3(0.4545454545));
+    //color = pow(color, vec3(0.4545454545));
     
     return color;
 }
@@ -268,6 +271,41 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
     }
 }
 
+vec3 get_reflection(in vec3 direction, in vec3 surface_normal)
+{
+    return reflect(direction, surface_normal);
+}
+
+vec3 get_refraction(in vec3 direction, in vec3 surface_normal)
+{
+    float eta1 = 1.0;
+    float eta2 = 1.9;
+    float eta = eta1 / eta2;
+    
+    float c1 = dot(surface_normal, direction);
+    if (c1 < 0.0)
+    {
+        c1 = -c1;
+    }
+    else
+    {
+        surface_normal = -surface_normal;
+        eta = 1.0 / eta;
+    }    
+    
+   	float theta = acos(c1);
+    
+    float k = 1.0 - eta * eta * sin(theta) * sin(theta);
+    if (k < 0.0) 
+        return vec3(0.0);
+    
+    float c2 = sqrt(k);
+    
+    vec3 ret = eta * direction + surface_normal * (eta * c1 - c2);
+    
+    return ret; 
+}
+
 vec3 create_ray(in vec3 origin, in vec3 direction)
 {
     vec3 result = vec3(0.0);
@@ -372,13 +410,14 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
             }
         }
         
+        Material mat = get_material(previous_type, previous_index);
+        
         if(bounce == 0)
         {
             result += bounce_pass_color;
         }
         else
         {
-            Material mat = get_material(previous_type, previous_index);
             result += mat.specular * bounce_pass_color;
         }
 
@@ -388,7 +427,16 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         }
 
         origin = bounce_pass_hit/* + surface_normal * 1e-3*/;
-        direction = reflect(direction, surface_normal);
+
+        /*if(mat.reflective)
+        {
+            direction = get_reflection(direction, surface_normal);
+        }*/
+
+        /*if(mat.refractive)
+        {*/
+            direction = get_refraction(direction, surface_normal);
+        /*}*/
 
         previous_type = current_type;
         previous_index = current_index;
