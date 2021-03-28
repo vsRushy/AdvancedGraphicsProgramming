@@ -3,7 +3,7 @@
 // Undefine for no anti-aliasing
 #define ANTIALIASING
 
-#define MAX_PLANES          2
+#define MAX_PLANES          1
 #define MAX_SPHERES         3
 #define MAX_POINTLIGHTS     1
 
@@ -12,8 +12,6 @@
 
 #define PLANE_CHECKERS      1
 #define PLANE_CLOUDS        2
-
-
 
 /* ---------------------------- */
 
@@ -75,10 +73,9 @@ const Material material03 = Material(0.2, 1.0, 100.0, 0.4, 1.0);
 const Material material04 = Material(0.2, 1.0, 100.0, 0.4, 0.0);
 
 Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0), PLANE_CHECKERS, material01);
-Plane plane02 = Plane(vec3(0.0, 0.5, 0.0), vec3(0.0, -1.0, 0.0), vec3(0.0, 0.2, 0.8), PLANE_CLOUDS, material04);
 
-Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material04);
-Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material04);
+Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material02);
+Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material03);
 Sphere sphere03 = Sphere(vec3(0.5, 0.0, 0.0), 0.2, vec3(0.8, 0.6, 0.0), material04);
 
 PointLight pointlight01 = PointLight(vec3(0.0, 0.2, -0.1), vec3(1.0, 1.0, 1.0), 10.0);
@@ -94,7 +91,6 @@ const int bounces = 2;
 void setup()
 {
     planes[0] = plane01;
-    planes[1] = plane02;
 
     spheres[0] = sphere01;
     spheres[1] = sphere02;
@@ -122,6 +118,40 @@ bool solve_quadratic(in float a, in float b, in float c, out float t0, out float
     t1 = (-b - sqrt(disc)) / (2.0 * a);
     
     return true;
+}
+
+float fresnel(in vec3 I, in vec3 N, in float ior) 
+{
+    float kr;
+
+    float cosi = clamp(-1.0, 1.0, dot(I, N)); 
+    
+    float etai = 1.0;
+    float etat = ior; 
+    
+    if (cosi > 0.0) 
+    {
+        float temp = etai;
+        etai = etat;
+        etat = temp;        
+    } 
+    
+    float sint = etai / etat * sqrt(max(0.0, 1.0 - cosi * cosi)); 
+
+    if (sint >= 1.)
+    { 
+        kr = 1.0; 
+    } 
+    else 
+    { 
+        float cost = sqrt(max(0.0, 1.0 - sint * sint)); 
+        cosi = abs(cosi); 
+        float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost)); 
+        float Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost)); 
+        kr = (Rs * Rs + Rp * Rp) / 2.0; 
+    }
+
+    return kr;
 }
 
 Material get_material(in int index, in int type)
@@ -158,7 +188,13 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
     vec3 halfwayDir = normalize(lightDir + viewDir);
     vec3 specular = pow(max(-dot(surfaceNormal, halfwayDir), 0.0), material.shininess) * material.specular * objectColor * lightIntensity;
     
-    vec3 color = ambient + diffuse + specular;
+    //float f = fresnel(viewDir, surfaceNormal, coeff);
+    //float f = 1. - dot(normalize(camera.position), normalize(surfaceNormal));
+    float f = pow(1.0 - max(dot(surfaceNormal, -lightDir), 0.0), 10.0); 
+    
+    //vec3 color = ambient + diffuse + specular;
+    vec3 color = ambient + mix(diffuse, vec3(1.0), specular) + f;
+    
     color = pow(color, vec3(0.4545454545));
     
     return color;
