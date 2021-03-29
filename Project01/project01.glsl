@@ -1,19 +1,67 @@
+// -----------------------------------------------------------------------------------
+
+/*
+
+MIT License
+
+Copyright (c) 2021 Gerard Marcos Freixas
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+*/
+
+// -----------------------------------------------------------------------------------
+
+/*
+ *    For clarifying which variables are meant to be output parameters.
+ */
 #define OUT
 
-// Undefine for no anti-aliasing
+/*
+ *   Undefine for no anti-aliasing.
+ */
 #define ANTIALIASING
 
+/*
+ *   Maximum number of objects, for each type.
+ */
 #define MAX_PLANES          1
-#define MAX_SPHERES         3
+#define MAX_SPHERES         2
 #define MAX_POINTLIGHTS     1
 
+/*
+ *   Object type.
+ */
 #define TYPE_PLANE          0
 #define TYPE_SPHERE         1
 
+/*
+ *   Plane type.
+ */
 #define PLANE_CHECKERS      1
 #define PLANE_CLOUDS        2
 
-
+/*
+ *   Material type.
+ */
+#define MATERIAL_REFLECTIVE 0
+#define MATERIAL_REFRACTIVE 1
 
 /* ---------------------------- */
 
@@ -36,8 +84,8 @@ struct Material
     float shininess;
     float ambience;
     float reflection;
-    bool reflective;
-    bool refractive;
+    
+    int type; // 0 for reflective, 1 for refractive
 };
 
 struct Plane 
@@ -69,20 +117,19 @@ struct PointLight
 
 /* ---------------------------- */
 
-Camera camera = Camera(vec3(0.0, 0.0, -2.0), vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), 2.0);
+Camera camera = Camera(vec3(0.0, 0.0, -2.0), vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), 1.0);
 
-const Material material01 = Material(1.0, 1.0, 100.0, 1.0, 1.0, true, false);
-const Material material02 = Material(0.4, 1.0, 120.0, 0.3, 1.0, true, false);
-const Material material03 = Material(0.2, 1.0, 100.0, 0.4, 1.0, true, false);
-const Material material04 = Material(0.2, 1.0, 100.0, 0.4, 0.0, true, false);
-const Material material05 = Material(0.3, 1.0, 90.0, 0.5, 1.0, false, true);
+const Material material01 = Material(1.0, 1.0, 100.0, 1.0, 1.0, MATERIAL_REFLECTIVE);
+const Material material02 = Material(0.4, 1.0, 120.0, 0.3, 1.0, MATERIAL_REFLECTIVE);
+const Material material03 = Material(0.2, 1.0, 100.0, 0.4, 1.0, MATERIAL_REFLECTIVE);
+const Material material04 = Material(0.2, 1.0, 100.0, 0.4, 1.0, MATERIAL_REFLECTIVE);
+const Material material05 = Material(0.3, 1.0, 90.0, 0.5, 1.0, MATERIAL_REFLECTIVE);
 
 Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0), PLANE_CHECKERS, material01);
 //Plane plane02 = Plane(vec3(0.0, 0.5, 0.0), vec3(0.0, -1.0, 0.0), vec3(0.0, 0.2, 0.8), PLANE_CLOUDS, material02);
 
 Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material05);
 Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material05);
-Sphere sphere03 = Sphere(vec3(0.5, 0.0, 0.0), 0.2, vec3(0.8, 0.6, 0.0), material04);
 
 PointLight pointlight01 = PointLight(vec3(0.0, 0.2, -0.1), vec3(1.0, 1.0, 1.0), 10.0);
 
@@ -101,11 +148,21 @@ void setup()
 
     spheres[0] = sphere01;
     spheres[1] = sphere02;
-    spheres[2] = sphere03;
     
     pointlights[0] = pointlight01;
 }
 
+/*
+ *   Solves a quadratic equation.
+ *
+ *   @param[IN] 'a' parameter of the quadratic equation.
+ *   @param[IN] 'b' parameter of the quadratic equation.
+ *   @param[IN] 'c' parameter of the quadratic equation.
+ *   @param[OUT] First solution of the equation.
+ *   @param[OUT] Second solution of the equation.
+ *
+ *   @return True if the equation is solvable, false if the equation is unsolvable.
+ */
 bool solve_quadratic(in float a, in float b, in float c, out float t0, out float t1)
 {
     float disc = b * b - 4.0 * a * c;
@@ -127,6 +184,14 @@ bool solve_quadratic(in float a, in float b, in float c, out float t0, out float
     return true;
 }
 
+/*
+ *   Get the material of an object.
+ *
+ *   @param[IN] Index of the object.
+ *   @param[IN] Type of object.
+ *
+ *   @return The material of the desired object.
+ */
 Material get_material(in int index, in int type)
 {
     switch(type)
@@ -142,6 +207,9 @@ Material get_material(in int index, in int type)
             return spheres[index].material;
         }
         break;
+        
+        default:
+        {} break;
     }
 }
 
@@ -247,8 +315,7 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
         {    
             if (dist < distanceToLight)
             {                
- 				finalColor *= 2.0 * ambient;        
-                //finalColor = vec3(0.0);
+ 				finalColor *= 0.25 * ambient;
             }
         }
     }
@@ -264,8 +331,7 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
         {
             if (dist > 0.0 && dist < distanceToLight)
             {
-            	finalColor *= 2.0 * ambient;
-                //finalColor = vec3(0.0);
+            	finalColor *= 0.25 * ambient;
             }
         }
     }
@@ -429,13 +495,13 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         origin = bounce_pass_hit/* + surface_normal * 1e-3*/;
 
         /*if(mat.reflective)
-        {
+        {*/
             direction = get_reflection(direction, surface_normal);
-        }*/
+        /*}*/
 
         /*if(mat.refractive)
         {*/
-            direction = get_refraction(direction, surface_normal);
+            //direction = get_refraction(direction, surface_normal);
         /*}*/
 
         previous_type = current_type;
@@ -444,7 +510,7 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
     
     if(has_intersected)
     {
-        return result / float(bounces);
+        return result;
     }
     else
     {
