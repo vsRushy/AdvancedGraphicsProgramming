@@ -65,6 +65,9 @@ SOFTWARE.
 
 /* ---------------------------- */
 
+/*
+ *   The camera allows to see the scene from any point of view.
+ */
 struct Camera
 {
     vec3 position;
@@ -77,6 +80,9 @@ struct Camera
     float zoom;
 };
 
+/*
+ *   Either a plane or a sphere, have its own material.
+ */
 struct Material 
 {
     float diffuse;
@@ -88,6 +94,9 @@ struct Material
     int type; // 0 for reflective, 1 for refractive
 };
 
+/*
+ *   The plane object.
+ */
 struct Plane 
 {
     vec3 position;
@@ -99,6 +108,9 @@ struct Plane
     Material material;
 };
 
+/*
+ *   The sphere object.
+ */
 struct Sphere
 {
     vec3 position;
@@ -108,6 +120,9 @@ struct Sphere
     Material material;
 };
 
+/*
+ *   The light object.
+ */
 struct PointLight
 {
     vec3 position;
@@ -170,7 +185,7 @@ bool solve_quadratic(in float a, in float b, in float c, out float t0, out float
     if (disc < 0.0)
     {
         return false;
-    } 
+    }
     
     if (disc == 0.0)
     {
@@ -213,6 +228,11 @@ Material get_material(in int index, in int type)
     }
 }
 
+vec3 calculate_fresnel(in vec3 surface_normal, in vec3 surface_point_position)
+{
+    return vec3(0.01 + (1.0 - 0.01) * pow(1.0 - dot(-surface_normal, normalize(surface_point_position - camera.position)), 5.0));
+}
+
 vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColor, in PointLight pointLight, in vec3 surfaceNormal, in Material material)
 {
     vec3 lightVector = surfacePointPosition - pointLight.position;
@@ -229,7 +249,9 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
     vec3 halfwayDir = normalize(lightDir + viewDir);
     vec3 specular = pow(max(-dot(surfaceNormal, halfwayDir), 0.0), material.shininess) * material.specular * objectColor * lightIntensity;
     
-    vec3 color = ambient + diffuse + specular;
+    vec3 f = calculate_fresnel(surfaceNormal, surfacePointPosition);
+    
+    vec3 color = ambient + diffuse + specular + f;
     //color = pow(color, vec3(0.4545454545));
     
     return color;
