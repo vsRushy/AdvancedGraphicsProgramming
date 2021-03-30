@@ -39,6 +39,11 @@ SOFTWARE.
 #define ANTIALIASING
 
 /*
+ *   Octaves number for the fractional brownian motion.
+ */
+#define NUM_OCTAVES 5
+
+/*
  *   Maximum number of objects, for each type.
  */
 #define MAX_PLANES          1
@@ -201,6 +206,36 @@ bool solve_quadratic(in float a, in float b, in float c, out float t0, out float
     return true;
 }
 
+float rand(vec2 n)
+{ 
+	return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+}
+
+float noise(vec2 n)
+{
+    const vec2 d = vec2(0.0, 1.0);
+    vec2 b = floor(n), f = smoothstep(vec2(0.0), vec2(1.0), fract(n));
+	
+    return mix(mix(rand(b), rand(b + d.yx), f.x), mix(rand(b + d.xy), rand(b + d.yy), f.x), f.y);
+}
+
+float fbm(vec2 x)
+{
+	float v = 0.0;
+	float a = 0.5;
+	vec2 shift = vec2(100);
+	// Rotate to reduce axial bias
+    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
+	for (int i = 0; i < NUM_OCTAVES; ++i)
+    {
+		v += a * noise(x);
+		x = rot * x * 2.0 + shift;
+		a *= 0.5;
+	}
+    
+	return v;
+}
+
 /*
  *   Get the material of an object.
  *
@@ -251,9 +286,9 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
     vec3 halfwayDir = normalize(lightDir + viewDir);
     vec3 specular = pow(max(-dot(surfaceNormal, halfwayDir), 0.0), material.shininess) * material.specular * objectColor * lightIntensity;
     
-    vec3 f = calculate_fresnel(surfaceNormal, surfacePointPosition);
-    
-    vec3 color = ambient + diffuse + specular + f;
+    vec3 fresnel = calculate_fresnel(surfaceNormal, surfacePointPosition);
+
+    vec3 color = diffuse + specular + ambient + fresnel;
     //color = pow(color, vec3(0.4545454545));
     
     return color;
@@ -538,9 +573,16 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
     }
     else
     {
+        /*vec3 top_color = vec3(0.8, 0.4, 1.0);
+        vec3 bot_color = vec3(0.85, 0.9, 1.0);
+        return mix(bot_color, top_color, direction.y);*/
         vec3 top_color = vec3(0.8, 0.4, 1.0);
         vec3 bot_color = vec3(0.85, 0.9, 1.0);
-        return mix(bot_color, top_color, direction.y);
+        vec3 m = mix(bot_color, top_color, direction.y);
+        
+        float f = fbm(vec2(direction.x - origin.x, direction.y * 0.5 - origin.y * 0.5));
+        vec3 c = m + f * 0.25;
+        return c;
     }
 }
 
