@@ -63,7 +63,7 @@ SOFTWARE.
 #define MATERIAL_REFLECTIVE 0
 #define MATERIAL_REFRACTIVE 1
 
-/* ---------------------------- */
+// -----------------------------------------------------------------------------------
 
 /*
  *   The camera allows to see the scene from any point of view.
@@ -130,7 +130,7 @@ struct PointLight
     float intensity;
 };
 
-/* ---------------------------- */
+// -----------------------------------------------------------------------------------
 
 Camera camera = Camera(vec3(0.0, 0.0, -2.0), vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), 1.0);
 
@@ -139,12 +139,14 @@ const Material material02 = Material(0.4, 1.0, 120.0, 0.3, 1.0, MATERIAL_REFLECT
 const Material material03 = Material(0.2, 1.0, 100.0, 0.4, 1.0, MATERIAL_REFLECTIVE);
 const Material material04 = Material(0.2, 1.0, 100.0, 0.4, 1.0, MATERIAL_REFLECTIVE);
 const Material material05 = Material(0.3, 1.0, 90.0, 0.5, 1.0, MATERIAL_REFLECTIVE);
+const Material material06 = Material(0.5, 0.5, 77.0, 0.7, 1.0, MATERIAL_REFLECTIVE);
+const Material material07 = Material(0.4, 0.25, 124.0, 0.2, 1.0, MATERIAL_REFLECTIVE);
 
 Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0), PLANE_CHECKERS, material01);
 //Plane plane02 = Plane(vec3(0.0, 0.5, 0.0), vec3(0.0, -1.0, 0.0), vec3(0.0, 0.2, 0.8), PLANE_CLOUDS, material02);
 
-Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material05);
-Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material05);
+Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material06);
+Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material07);
 
 PointLight pointlight01 = PointLight(vec3(0.0, 0.2, -0.1), vec3(1.0, 1.0, 1.0), 10.0);
 
@@ -154,7 +156,7 @@ PointLight pointlights[MAX_POINTLIGHTS];
 
 const int bounces = 2;
 
-/* ---------------------------- */
+// -----------------------------------------------------------------------------------
 
 void setup()
 {
@@ -589,3 +591,5 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 
     fragColor = vec4(color, 1.0);
 }
+
+// -----------------------------------------------------------------------------------
