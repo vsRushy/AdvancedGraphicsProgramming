@@ -214,7 +214,8 @@ float rand(in vec2 n)
 float noise(in vec2 n)
 {
     const vec2 d = vec2(0.0, 1.0);
-    vec2 b = floor(n), f = smoothstep(vec2(0.0), vec2(1.0), fract(n));
+    vec2 b = floor(n);
+    vec2 f = smoothstep(vec2(0.0), vec2(1.0), fract(n));
 	
     return mix(mix(rand(b), rand(b + d.yx), f.x), mix(rand(b + d.xy), rand(b + d.yy), f.x), f.y);
 }
@@ -224,8 +225,10 @@ float fbm(in vec2 x)
 	float v = 0.0;
 	float a = 0.5;
 	vec2 shift = vec2(100);
+    
 	// Rotate to reduce axial bias
     mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
+    
 	for (int i = 0; i < NUM_OCTAVES; ++i)
     {
 		v += a * noise(x);
@@ -466,7 +469,6 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
             {
                 if(object_hit_distance < dist)
                 {
-                    //result = planes[i].color;
                     dist = object_hit_distance;
 
                     switch(planes[i].type)
@@ -519,7 +521,6 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
             {
                 if(object_hit_distance < dist)
                 {
-                    //result = spheres[i].color;
                     dist = object_hit_distance;
                     bounce_pass_color = get_color(direction, hit, spheres[i].color, pointlights[0], surface_normal, spheres[i].material);
                 
@@ -580,8 +581,8 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         vec3 bot_color = vec3(0.85, 0.9, 1.0);
         vec3 m = mix(bot_color, top_color, direction.y);
         
-        float f = fbm(vec2(direction.x - origin.x, direction.y * 0.5 - origin.y * 0.5));
-        vec3 c = m + f * 0.25;
+        float f = fbm(vec2(direction.x - origin.x, direction.y - origin.y));
+        vec3 c = m + f;
         return c;
     }
 }
