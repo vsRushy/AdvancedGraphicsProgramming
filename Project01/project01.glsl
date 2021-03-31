@@ -618,12 +618,12 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     vec3 ray_direction3 = normalize(intersection3 - ray_origin);
     vec3 ray_direction4 = normalize(intersection4 - ray_origin);
     
-    vec3 color1 = create_ray(ray_origin, ray_direction1);
-    vec3 color2 = create_ray(ray_origin, ray_direction2);
-    vec3 color3 = create_ray(ray_origin, ray_direction3);
-    vec3 color4 = create_ray(ray_origin, ray_direction4);
+    vec3 color = create_ray(ray_origin, ray_direction1);
+    color += create_ray(ray_origin, ray_direction2);
+    color += create_ray(ray_origin, ray_direction3);
+    color += create_ray(ray_origin, ray_direction4);
     
-    vec3 color = (color1 + color2 + color3 + color4) / 4.0;
+    color /= 4.0;
 #else
     vec3 intersection = center + (uv.x) * camera.right + uv.y * camera.up;
     
