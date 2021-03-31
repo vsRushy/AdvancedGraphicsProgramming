@@ -265,9 +265,9 @@ Material get_material(in int index, in int type)
     }
 }
 
-vec3 calculate_fresnel(in vec3 surface_normal, in vec3 surface_point_position)
+vec3 calculate_fresnel(in vec3 surface_normal, in vec3 surface_point_position, in float intensity)
 {
-    return vec3(0.01 + (1.0 - 0.01) * pow(1.0 - dot(-surface_normal, normalize(surface_point_position - camera.position)), 5.0));
+    return vec3(intensity + (1.0 - intensity) * pow(1.0 - dot(-surface_normal, normalize(surface_point_position - camera.position)), 5.0));
 }
 
 vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColor, in PointLight pointLight, in vec3 surfaceNormal, in Material material)
@@ -286,7 +286,7 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
     vec3 halfwayDir = normalize(lightDir + viewDir);
     vec3 specular = pow(max(-dot(surfaceNormal, halfwayDir), 0.0), material.shininess) * material.specular * objectColor * lightIntensity;
     
-    vec3 fresnel = calculate_fresnel(surfaceNormal, surfacePointPosition);
+    vec3 fresnel = calculate_fresnel(surfaceNormal, surfacePointPosition, 0.01);
 
     vec3 color = diffuse + specular + ambient + fresnel;
     //color = pow(color, vec3(0.4545454545));
