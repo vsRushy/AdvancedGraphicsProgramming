@@ -29,7 +29,7 @@ SOFTWARE.
 // -----------------------------------------------------------------------------------
 
 /*
- *    For clarifying which variables are meant to be output parameters.
+ *    For clarifying which variables are meant to be output parameters from a function.
  */
 #define OUT
 
@@ -206,12 +206,12 @@ bool solve_quadratic(in float a, in float b, in float c, out float t0, out float
     return true;
 }
 
-float rand(vec2 n)
-{ 
+float rand(in vec2 n)
+{
 	return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
 }
 
-float noise(vec2 n)
+float noise(in vec2 n)
 {
     const vec2 d = vec2(0.0, 1.0);
     vec2 b = floor(n), f = smoothstep(vec2(0.0), vec2(1.0), fract(n));
@@ -219,7 +219,7 @@ float noise(vec2 n)
     return mix(mix(rand(b), rand(b + d.yx), f.x), mix(rand(b + d.xy), rand(b + d.yy), f.x), f.y);
 }
 
-float fbm(vec2 x)
+float fbm(in vec2 x)
 {
 	float v = 0.0;
 	float a = 0.5;
