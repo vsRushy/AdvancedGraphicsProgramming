@@ -292,7 +292,7 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
     vec3 fresnel = calculate_fresnel(surfaceNormal, surfacePointPosition, 0.01);
 
     vec3 color = diffuse + specular + ambient + fresnel;
-    //color = pow(color, vec3(0.4545454545));
+    //color = pow(color, vec3(0.4545454545)); // Gamma correction
     
     return color;
 }
@@ -574,20 +574,18 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
     }
     else
     {
-        /*vec3 top_color = vec3(0.8, 0.4, 1.0);
-        vec3 bot_color = vec3(0.85, 0.9, 1.0);
-        return mix(bot_color, top_color, direction.y);*/
         vec3 top_color = vec3(0.8, 0.4, 1.0);
         vec3 bot_color = vec3(0.85, 0.9, 1.0);
         vec3 m = mix(bot_color, top_color, direction.y);
         
-        float f = fbm(vec2(direction.x - origin.x, direction.y - origin.y));
-        vec3 c = m + f;
+        vec3 r = normalize(direction - origin);
+        float f = fbm(vec2(r.x, r.y));
+        vec3 c = m + f * 0.25;
         return c;
     }
 }
 
-/* ---------------------------- */
+// -----------------------------------------------------------------------------------
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord)
 {
