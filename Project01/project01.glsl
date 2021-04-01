@@ -206,37 +206,80 @@ bool solve_quadratic(in float a, in float b, in float c, out float t0, out float
     return true;
 }
 
-float rand(in vec2 n)
+float hash(vec3 p) 
 {
-	return fract(sin(dot(n, vec2(12.9898, 4.1414))) * 43758.5453);
+    p  = fract( p*0.3183099+.1 );
+	p *= 17.0;
+    return fract( p.x*p.y*p.z*(p.x+p.y+p.z) );
 }
 
-float noise(in vec2 n)
+float noise(in vec3 x)
 {
-    const vec2 d = vec2(0.0, 1.0);
-    vec2 b = floor(n);
-    vec2 f = smoothstep(vec2(0.0), vec2(1.0), fract(n));
+    vec3 p = floor(x);
+    vec3 f = fract(x);
+    f = f *f *(3.0 - 2.0 * f);
 	
-    return mix(mix(rand(b), rand(b + d.yx), f.x), mix(rand(b + d.xy), rand(b + d.yy), f.x), f.y);
+    return mix(mix(mix(hash(p + vec3(0, 0, 0)), 
+                       hash(p + vec3(1, 0, 0)), f.x),
+                   mix(hash(p + vec3(0, 1, 0)), 
+                       hash(p + vec3(1, 1, 0)), f.x), f.y),
+               mix(mix(hash(p + vec3(0, 0, 1)), 
+                       hash(p + vec3(1, 0, 1)), f.x),
+                   mix(hash(p + vec3(0, 1, 1)), 
+                       hash(p + vec3(1, 1, 1)), f.x), f.y), f.z);
 }
 
-float fbm(in vec2 x)
+float fractn(vec3 p)
 {
-	float v = 0.0;
-	float a = 0.5;
-	vec2 shift = vec2(100);
+    float f = 0.0;
+    p = p * 3.0;
+    f += 0.50000 * noise(p); p = 2.0 * p;
+    f += 0.25000 * noise(p); p = 2.0 * p;
+	f += 0.12500 * noise(p); p = 2.0 * p;
+	f += 0.06250 * noise(p); p = 2.0 * p;
+    f += 0.03125 * noise(p); p = 2.0 * p;
+    f += 0.015625 * noise(p); p = 2.0 * p;
+    f += 0.0078125 * noise (p); p = 2.0 * p;
     
-	// Rotate to reduce axial bias
-    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
-    
-	for (int i = 0; i < NUM_OCTAVES; ++i)
+    return f;
+}
+
+float scattering(vec3 ro,vec3 rd)
+{
+    const int samples = 16;
+    float sampleDist = 1.0;
+    float acum = 0.0;
+    for(int i = 0; i < samples; ++i)
     {
-		v += a * noise(x);
-		x = rot * x * 2.0 + shift;
-		a *= 0.5;
-	}
+        float idx = float(i) / float(samples);
+        acum += fractn(ro + (rd * (idx * sampleDist)));
+    }
     
-	return v;
+    return acum / float(samples);
+}
+
+float calculate_clouds_plane(in vec3 origin, in vec3 direction)
+{
+    vec3 point = vec3(0.0, 200.0, 0.0);
+    vec3 normal = vec3(0.0, 1.0, 0.0);
+
+    float hit = 0.0;
+    
+    float dotP = dot(direction, normal);
+    if(dotP == 0.0)
+    {
+        return hit;
+    }
+    
+    float distToHit = dot(point - origin, normal) / dotP;
+    if(distToHit < 0.0)
+    {
+        return hit;
+    }
+    
+    hit = distToHit;
+    
+    return hit;
 }
 
 /*
@@ -578,10 +621,27 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         vec3 bot_color = vec3(0.85, 0.9, 1.0);
         vec3 m = mix(bot_color, top_color, direction.y);
         
-        vec3 r = normalize(direction - origin);
-        float f = fbm(vec2(r.x, r.y));
-        vec3 c = m + f * 0.25;
-        return c;
+        float id = 0.0;
+        float dPlane = calculate_clouds_plane(camera.position, normalize(direction - origin));
+        vec3 cloudColor = vec3(0.0,0.0,0.0);
+        if(dPlane > 0.0)
+        {
+            // Sample noise and modulate noise
+            vec3 pos = camera.position + (normalize(direction - origin) * dPlane);
+            vec2 off = vec2(iTime, iTime) * vec2(-10,0);
+            float n = fractn(vec3(pos.x + off.x, pos.y, pos.z + off.y) * 0.002);
+            n = smoothstep(0.2, 1.0, n);
+            cloudColor = mix(m, vec3(1.0, 1.0, 1.0), n);
+
+            // Fade with distance
+            float alpha = abs(1.0 - clamp(dPlane / 5000.0, 0.0, 1.0));
+            cloudColor = mix(m, cloudColor, alpha);
+
+            // Cloud Scattering
+            float scat = scattering(vec3(pos.x + off.x, pos.y, pos.z + off.y) * 0.002, normalize(direction - origin));
+            scat = smoothstep(0.0, 0.7, scat);
+            return mix(m, cloudColor * scat, alpha);
+        }
     }
 }
 
