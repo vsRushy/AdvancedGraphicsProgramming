@@ -206,11 +206,11 @@ bool solve_quadratic(in float a, in float b, in float c, out float t0, out float
     return true;
 }
 
-float hash(vec3 p) 
+float hash(in vec3 p) 
 {
-    p  = fract( p*0.3183099+.1 );
+    p = fract(p * 0.3183099 + 0.1);
 	p *= 17.0;
-    return fract( p.x*p.y*p.z*(p.x+p.y+p.z) );
+    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
 }
 
 float noise(in vec3 x)
@@ -219,32 +219,26 @@ float noise(in vec3 x)
     vec3 f = fract(x);
     f = f *f *(3.0 - 2.0 * f);
 	
-    return mix(mix(mix(hash(p + vec3(0, 0, 0)), 
-                       hash(p + vec3(1, 0, 0)), f.x),
-                   mix(hash(p + vec3(0, 1, 0)), 
-                       hash(p + vec3(1, 1, 0)), f.x), f.y),
-               mix(mix(hash(p + vec3(0, 0, 1)), 
-                       hash(p + vec3(1, 0, 1)), f.x),
-                   mix(hash(p + vec3(0, 1, 1)), 
-                       hash(p + vec3(1, 1, 1)), f.x), f.y), f.z);
+    return mix(mix(mix(hash(p + vec3(0.0)), 
+                       hash(p + vec3(1.0, 0.0, 0.0)), f.x),
+                   mix(hash(p + vec3(0.0, 1.0, 0.0)), 
+                       hash(p + vec3(1.0, 1.0, 0.0)), f.x), f.y),
+               mix(mix(hash(p + vec3(0.0, 0.0, 1.0)), 
+                       hash(p + vec3(1.0, 0.0, 1.0)), f.x),
+                   mix(hash(p + vec3(0.0, 1.0, 1.0)), 
+                       hash(p + vec3(1.0)), f.x), f.y), f.z);
 }
 
-float fractn(vec3 p)
+float fractn(in vec3 p)
 {
     float f = 0.0;
     p = p * 3.0;
     f += 0.50000 * noise(p); p = 2.0 * p;
-    f += 0.25000 * noise(p); p = 2.0 * p;
-	f += 0.12500 * noise(p); p = 2.0 * p;
-	f += 0.06250 * noise(p); p = 2.0 * p;
-    f += 0.03125 * noise(p); p = 2.0 * p;
-    f += 0.015625 * noise(p); p = 2.0 * p;
-    f += 0.0078125 * noise (p); p = 2.0 * p;
     
     return f;
 }
 
-float scattering(vec3 ro,vec3 rd)
+float scattering(in vec3 ro, in vec3 rd)
 {
     const int samples = 16;
     float sampleDist = 1.0;
@@ -255,7 +249,7 @@ float scattering(vec3 ro,vec3 rd)
         acum += fractn(ro + (rd * (idx * sampleDist)));
     }
     
-    return acum / float(samples);
+    return acum / float(samples) * 2.5;
 }
 
 float calculate_clouds_plane(in vec3 origin, in vec3 direction)
