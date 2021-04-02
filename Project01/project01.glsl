@@ -249,7 +249,7 @@ float scattering(in vec3 ro, in vec3 rd)
         acum += fractn(ro + (rd * (idx * sampleDist)));
     }
     
-    return acum / float(samples) * 2.5;
+    return acum / float(samples);
 }
 
 float calculate_clouds_plane(in vec3 origin, in vec3 direction)
