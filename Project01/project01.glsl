@@ -233,7 +233,7 @@ float fractn(in vec3 p)
 {
     float f = 0.0;
     p = p * 3.0;
-    f += 0.50000 * noise(p); p = 2.0 * p;
+    f += 0.25000 * noise(p); p = 2.0 * p;
     
     return f;
 }
@@ -617,15 +617,15 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         
         float id = 0.0;
         float dPlane = calculate_clouds_plane(camera.position, normalize(direction - origin));
-        vec3 cloudColor = vec3(0.0,0.0,0.0);
+        vec3 cloudColor = vec3(0.0);
         if(dPlane > 0.0)
         {
             // Sample noise and modulate noise
             vec3 pos = camera.position + (normalize(direction - origin) * dPlane);
-            vec2 off = vec2(iTime, iTime) * vec2(-10,0);
+            vec2 off = vec2(iTime, iTime) * vec2(-10.0, 0.0);
             float n = fractn(vec3(pos.x + off.x, pos.y, pos.z + off.y) * 0.002);
-            n = smoothstep(0.2, 1.0, n);
-            cloudColor = mix(m, vec3(1.0, 1.0, 1.0), n);
+            n = smoothstep(0.25, 1.0, n);
+            cloudColor = mix(m, vec3(1.0), n);
 
             // Fade with distance
             float alpha = abs(1.0 - clamp(dPlane / 5000.0, 0.0, 1.0));
