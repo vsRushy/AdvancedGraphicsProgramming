@@ -154,6 +154,9 @@ const int bounces = 2;
 
 // -----------------------------------------------------------------------------------
 
+/*
+ *   Assigns each object to the correspondant array.
+ */
 void setup()
 {
     planes[0] = plane01;
@@ -195,6 +198,7 @@ bool solve_quadratic(in float a, in float b, in float c, out float t0, out float
     
     return true;
 }
+
 
 float hash(in vec3 p) 
 {
@@ -242,6 +246,14 @@ float scattering(in vec3 ro, in vec3 rd)
     return acum / float(samples);
 }
 
+/*
+ *   This function is created to return the distance value from an interesction to a plane directly.
+ *
+ *   @param[IN] Origin of the ray.
+ *   @param[IN] Direction of a ray.
+ *
+ *   @return The distance of the plane intersection.
+ */
 float calculate_clouds_plane(in vec3 origin, in vec3 direction)
 {
     vec3 point = vec3(0.0, 200.0, 0.0);
@@ -295,6 +307,15 @@ Material get_material(in int index, in int type)
     }
 }
 
+/*
+ *   The fresnel is used to whiten the color depending on the distance and the angle between the camera and the object.
+ *
+ *   @param[IN] The normal of the surface.
+ *   @param[IN] The position of the surface.
+ *   @param[IN] The intensity factor to be used in the fresnel operation.
+ *
+ *   @return The value of the whiteness of the fresnel operation.
+ */
 vec3 calculate_fresnel(in vec3 surface_normal, in vec3 surface_point_position, in float intensity)
 {
     return vec3(intensity + (1.0 - intensity) * pow(1.0 - dot(-surface_normal, normalize(surface_point_position - camera.position)), 5.0));
@@ -319,7 +340,7 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
     vec3 fresnel = calculate_fresnel(surfaceNormal, surfacePointPosition, 0.01);
 
     vec3 color = diffuse + specular + ambient + fresnel;
-    //color = pow(color, vec3(0.4545454545)); // Gamma correction
+    color = pow(color, vec3(0.4545454545)); // Gamma correction
     
     return color;
 }
@@ -497,30 +518,14 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
                 if(object_hit_distance < dist)
                 {
                     dist = object_hit_distance;
-
-                    switch(planes[i].type)
+                        
+                    if(mod(floor(hit.x) - floor(hit.z), 2.0) == 0.0)
                     {
-                        case PLANE_CHECKERS:
-                        {
-                            if(mod(floor(hit.x) - floor(hit.z), 2.0) == 0.0)
-                            {
-                                bounce_pass_color = get_color(direction, hit, planes[i].color, pointlights[0], planes[i].normal, planes[i].material);
-                            }
-                            else
-                            {
-                                bounce_pass_color = get_color(direction, hit, vec3(1.0), pointlights[0], planes[i].normal, planes[i].material);
-                            }
-                        }
-                        break;
-
-                        case PLANE_CLOUDS:
-                        {
-
-                        }
-                        break;
-
-                        default:
-                        {} break;
+                        bounce_pass_color = get_color(direction, hit, planes[i].color, pointlights[0], planes[i].normal, planes[i].material);
+                    }
+                    else
+                    {
+                        bounce_pass_color = get_color(direction, hit, vec3(1.0), pointlights[0], planes[i].normal, planes[i].material);
                     }
 
                     surface_normal = planes[i].normal;
