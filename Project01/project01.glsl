@@ -644,7 +644,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     vec2 uv = fragCoord/iResolution.xy - 0.5;
     uv.x *= aspect_ratio;
 
-    camera.position = vec3(sin(iTime) * 1.0, 0.0, -cos(iTime) * 1.0);
+    camera.position = vec3(sin(iTime), 0.0, -cos(iTime));
     
     vec3 ray_origin = camera.position;
 
@@ -672,7 +672,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     
     color /= 4.0;
 #else
-    vec3 intersection = center + (uv.x) * camera.right + uv.y * camera.up;
+    vec3 intersection = center + uv.x * camera.right + uv.y * camera.up;
     
     vec3 ray_direction = normalize(intersection - ray_origin);
     
