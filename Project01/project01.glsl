@@ -609,26 +609,29 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         vec3 top_color = vec3(0.8, 0.4, 1.0);
         vec3 bot_color = vec3(0.85, 0.9, 1.0);
         vec3 m = mix(bot_color, top_color, direction.y);
-        
-        float id = 0.0;
-        float dPlane = calculate_clouds_plane(camera.position, normalize(direction - origin));
         vec3 cloudColor = vec3(1.0);
+        
+        float dPlane = calculate_clouds_plane(camera.position, normalize(direction - origin));
+        
         if(dPlane > 0.0)
         {
             // Sample noise and modulate noise
             vec3 pos = camera.position + (normalize(direction - origin) * dPlane);
             vec2 off = vec2(iTime, iTime) * vec2(-10.0, 0.0);
             float n = fractn(vec3(pos.x + off.x, pos.y, pos.z + off.y) * 0.002);
+            
             n = smoothstep(0.25, 1.0, n);
             cloudColor = mix(m, vec3(1.0), n);
 
             // Fade with distance
             float alpha = abs(1.0 - clamp(dPlane / 5000.0, 0.0, 1.0));
+            
             cloudColor = mix(m, cloudColor, alpha);
 
             // Cloud Scattering
             float scat = scattering(vec3(pos.x + off.x, pos.y, pos.z + off.y) * 0.002, normalize(direction - origin));
             scat = smoothstep(0.0, 0.7, scat);
+            
             return mix(m, cloudColor * scat, alpha);
         }
     }
