@@ -57,12 +57,6 @@ SOFTWARE.
 #define TYPE_SPHERE         1
 
 /*
- *   Plane type.
- */
-#define PLANE_CHECKERS      1
-#define PLANE_CLOUDS        2
-
-/*
  *   Material type.
  */
 #define MATERIAL_REFLECTIVE 0
@@ -107,8 +101,6 @@ struct Plane
     vec3 position;
     vec3 normal;
     vec3 color;
-
-    int type;
     
     Material material;
 };
@@ -147,8 +139,7 @@ const Material material05 = Material(0.3, 1.0, 90.0, 0.5, 1.0, MATERIAL_REFLECTI
 const Material material06 = Material(0.5, 0.5, 77.0, 0.7, 1.0, MATERIAL_REFLECTIVE);
 const Material material07 = Material(0.4, 0.25, 124.0, 0.2, 1.0, MATERIAL_REFLECTIVE);
 
-Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0), PLANE_CHECKERS, material01);
-//Plane plane02 = Plane(vec3(0.0, 0.5, 0.0), vec3(0.0, -1.0, 0.0), vec3(0.0, 0.2, 0.8), PLANE_CLOUDS, material02);
+Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0), material01);
 
 Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material06);
 Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material07);
@@ -166,7 +157,6 @@ const int bounces = 2;
 void setup()
 {
     planes[0] = plane01;
-    //planes[1] = plane02;
 
     spheres[0] = sphere01;
     spheres[1] = sphere02;
@@ -617,7 +607,7 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         
         float id = 0.0;
         float dPlane = calculate_clouds_plane(camera.position, normalize(direction - origin));
-        vec3 cloudColor = vec3(0.0);
+        vec3 cloudColor = vec3(1.0);
         if(dPlane > 0.0)
         {
             // Sample noise and modulate noise
