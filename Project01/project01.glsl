@@ -39,6 +39,11 @@ SOFTWARE.
 #define ANTIALIASING
 
 /*
+ *   Define for gamma correction.
+ */
+//#define GAMMA_CORRECTION
+
+/*
  *   Octaves number for the fractional brownian motion.
  */
 #define NUM_OCTAVES 5
@@ -134,14 +139,10 @@ Camera camera = Camera(vec3(0.0, 0.0, -2.0), vec3(0.0), vec3(0.0), vec3(0.0), ve
 const Material material01 = Material(1.0, 1.0, 100.0, 1.0, 1.0, MATERIAL_REFLECTIVE);
 const Material material02 = Material(0.4, 1.0, 120.0, 0.3, 1.0, MATERIAL_REFRACTIVE);
 const Material material03 = Material(0.2, 1.0, 100.0, 0.4, 1.0, MATERIAL_REFLECTIVE);
-const Material material04 = Material(0.2, 1.0, 100.0, 0.4, 1.0, MATERIAL_REFLECTIVE);
-const Material material05 = Material(0.3, 1.0, 90.0, 0.5, 1.0, MATERIAL_REFLECTIVE);
-const Material material06 = Material(0.5, 0.5, 77.0, 0.7, 1.0, MATERIAL_REFLECTIVE);
-const Material material07 = Material(0.4, 0.25, 124.0, 0.2, 1.0, MATERIAL_REFLECTIVE);
 
-Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0), material01);
+Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0), material03);
 
-Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material06);
+Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material01);
 Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material02);
 
 PointLight pointlight01 = PointLight(vec3(0.0, 0.2, -0.1), vec3(1.0, 1.0, 1.0), 10.0);
@@ -337,10 +338,13 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
     vec3 halfwayDir = normalize(lightDir + viewDir);
     vec3 specular = pow(max(-dot(surfaceNormal, halfwayDir), 0.0), material.shininess) * material.specular * objectColor * lightIntensity;
     
-    vec3 fresnel = calculate_fresnel(surfaceNormal, surfacePointPosition, 0.01);
+    vec3 fresnel = calculate_fresnel(surfaceNormal, surfacePointPosition, 0.001);
 
     vec3 color = diffuse + specular + ambient + fresnel;
-    color = pow(color, vec3(0.4545454545)); // Gamma correction
+    
+#ifdef GAMMA_CORRECTION
+    color = pow(color, vec3(0.4545454545));
+#endif
     
     return color;
 }
