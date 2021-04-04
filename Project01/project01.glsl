@@ -132,7 +132,7 @@ struct PointLight
 Camera camera = Camera(vec3(0.0, 0.0, -2.0), vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), 1.0);
 
 const Material material01 = Material(1.0, 1.0, 100.0, 1.0, 1.0, MATERIAL_REFLECTIVE);
-const Material material02 = Material(0.4, 1.0, 120.0, 0.3, 1.0, MATERIAL_REFLECTIVE);
+const Material material02 = Material(0.4, 1.0, 120.0, 0.3, 1.0, MATERIAL_REFRACTIVE);
 const Material material03 = Material(0.2, 1.0, 100.0, 0.4, 1.0, MATERIAL_REFLECTIVE);
 const Material material04 = Material(0.2, 1.0, 100.0, 0.4, 1.0, MATERIAL_REFLECTIVE);
 const Material material05 = Material(0.3, 1.0, 90.0, 0.5, 1.0, MATERIAL_REFLECTIVE);
@@ -142,7 +142,7 @@ const Material material07 = Material(0.4, 0.25, 124.0, 0.2, 1.0, MATERIAL_REFLEC
 Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0), material01);
 
 Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material06);
-Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material07);
+Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material02);
 
 PointLight pointlight01 = PointLight(vec3(0.0, 0.2, -0.1), vec3(1.0, 1.0, 1.0), 10.0);
 
@@ -452,7 +452,7 @@ vec3 get_reflection(in vec3 direction, in vec3 surface_normal)
     return reflect(direction, surface_normal);
 }
 
-vec3 get_refraction(in vec3 direction, in vec3 surface_normal)
+/*vec3 get_refraction(in vec3 direction, in vec3 surface_normal)
 {
     float eta1 = 1.0;
     float eta2 = 1.9;
@@ -480,6 +480,10 @@ vec3 get_refraction(in vec3 direction, in vec3 surface_normal)
     vec3 ret = eta * direction + surface_normal * (eta * c1 - c2);
     
     return ret; 
+}*/
+vec3 get_refraction(in vec3 direction, in vec3 surface_normal)
+{
+    return refract(direction, surface_normal, 1.0 / 1.20); 
 }
 
 vec3 create_ray(in vec3 origin, in vec3 direction)
@@ -586,15 +590,23 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
 
         origin = bounce_pass_hit/* + surface_normal * 1e-3*/;
 
-        /*if(mat.reflective)
-        {*/
-            direction = get_reflection(direction, surface_normal);
-        /*}*/
-
-        /*if(mat.refractive)
-        {*/
-            //direction = get_refraction(direction, surface_normal);
-        /*}*/
+        switch(mat.type)
+        {
+            case MATERIAL_REFLECTIVE:
+            {
+                direction = get_reflection(direction, surface_normal);
+            }
+            break;
+            
+            case MATERIAL_REFRACTIVE:
+            {
+                direction = get_refraction(direction, surface_normal);
+            }
+            break;
+            
+            default:
+            {} break;
+        }
 
         previous_type = current_type;
         previous_index = current_index;
@@ -606,6 +618,7 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
     }
     else
     {
+        // Sky
         vec3 top_color = vec3(0.8, 0.4, 1.0);
         vec3 bot_color = vec3(0.85, 0.9, 1.0);
         vec3 m = mix(bot_color, top_color, direction.y);
