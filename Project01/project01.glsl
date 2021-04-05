@@ -90,7 +90,8 @@ struct Material
     float ambience;
     float reflection;
     
-    int type; // 0 for reflective, 1 for refractive
+    // 0 for reflective, 1 for refractive
+    int type;
 };
 
 /*
@@ -133,11 +134,11 @@ Camera camera = Camera(vec3(0.0, 0.0, -2.0), vec3(0.0), vec3(0.0), vec3(0.0), ve
 
 const Material material01 = Material(1.0, 1.0, 100.0, 1.0, 1.0, MATERIAL_REFLECTIVE);
 const Material material02 = Material(0.4, 1.0, 120.0, 0.3, 1.0, MATERIAL_REFRACTIVE);
-const Material material03 = Material(0.2, 1.0, 100.0, 0.4, 1.0, MATERIAL_REFLECTIVE);
+const Material material03 = Material(0.2, 1.0, 100.0, 0.4, 1.0, MATERIAL_REFRACTIVE);
 
 Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0), material03);
 
-Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material02);
+Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material01);
 Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material02);
 
 PointLight pointlight01 = PointLight(vec3(0.0, 0.2, -0.1), vec3(1.0, 1.0, 1.0), 10.0);
@@ -282,7 +283,7 @@ float calculate_clouds_plane(in vec3 origin, in vec3 direction)
  *
  *   @return The material of the desired object.
  */
-Material get_material(in int index, in int type)
+Material get_material(in int type, in int index)
 {
     switch(type)
     {
@@ -571,15 +572,13 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
             }
         }
         
-        Material mat = get_material(previous_type, previous_index);
-        
         if(bounce == 0)
         {
             result += bounce_pass_color;
         }
         else
         {
-            result += mat.specular * bounce_pass_color;
+            result += get_material(previous_type, previous_index).specular * bounce_pass_color;
         }
 
         if(current_type < 0)
@@ -589,7 +588,7 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
 
         origin = bounce_pass_hit/* + surface_normal * 1e-3*/;
 
-        /*switch(mat.type)
+        switch(get_material(current_type, current_index).type)
         {
             case MATERIAL_REFLECTIVE:
             {
@@ -599,16 +598,13 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
             
             case MATERIAL_REFRACTIVE:
             {
-                direction = get_refraction(direction, surface_normal);
+                direction = get_refraction(direction, surface_normal, 0.01);
             }
             break;
             
             default:
             {} break;
-        }*/
-        
-        direction = get_reflection(direction, surface_normal);
-        //direction = get_refraction(direction, surface_normal, 0.01);
+        }
 
         previous_type = current_type;
         previous_index = current_index;
