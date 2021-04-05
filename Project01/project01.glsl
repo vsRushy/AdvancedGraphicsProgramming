@@ -44,11 +44,6 @@ SOFTWARE.
 //#define GAMMA_CORRECTION
 
 /*
- *   Octaves number for the fractional brownian motion.
- */
-#define NUM_OCTAVES 5
-
-/*
  *   Maximum number of objects, for each type.
  */
 #define MAX_PLANES          1
@@ -85,7 +80,7 @@ struct Camera
 };
 
 /*
- *   Either a plane or a sphere, have its own material.
+ *   Either a plane or a sphere have its own material.
  */
 struct Material 
 {
@@ -142,7 +137,7 @@ const Material material03 = Material(0.2, 1.0, 100.0, 0.4, 1.0, MATERIAL_REFLECT
 
 Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0), material03);
 
-Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material01);
+Sphere sphere01 = Sphere(vec3(0.1, 0.0, 0.0), 0.07, vec3(1.0, 0.5, 0.3), material02);
 Sphere sphere02 = Sphere(vec3(-0.1, 0.0, 0.0), 0.09, vec3(0.5, 0.3, 0.5), material02);
 
 PointLight pointlight01 = PointLight(vec3(0.0, 0.2, -0.1), vec3(1.0, 1.0, 1.0), 10.0);
@@ -485,9 +480,9 @@ vec3 get_reflection(in vec3 direction, in vec3 surface_normal)
     
     return ret; 
 }*/
-vec3 get_refraction(in vec3 direction, in vec3 surface_normal)
+vec3 get_refraction(in vec3 direction, in vec3 surface_normal, in float ior)
 {
-    return refract(direction, surface_normal, 1.0 / 1.20); 
+    return refract(direction, surface_normal, ior); 
 }
 
 vec3 create_ray(in vec3 origin, in vec3 direction)
@@ -594,7 +589,7 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
 
         origin = bounce_pass_hit/* + surface_normal * 1e-3*/;
 
-        switch(mat.type)
+        /*switch(mat.type)
         {
             case MATERIAL_REFLECTIVE:
             {
@@ -610,7 +605,10 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
             
             default:
             {} break;
-        }
+        }*/
+        
+        direction = get_reflection(direction, surface_normal);
+        //direction = get_refraction(direction, surface_normal, 0.01);
 
         previous_type = current_type;
         previous_index = current_index;
