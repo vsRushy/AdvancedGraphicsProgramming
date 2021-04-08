@@ -201,6 +201,7 @@ float hash(in vec3 p)
 {
     p = fract(p * 0.3183099 + 0.1);
 	p *= 17.0;
+    
     return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
 }
 
@@ -208,7 +209,7 @@ float noise(in vec3 x)
 {
     vec3 p = floor(x);
     vec3 f = fract(x);
-    f = f *f *(3.0 - 2.0 * f);
+    f = f * f *(3.0 - 2.0 * f);
 	
     return mix(mix(mix(hash(p + vec3(0.0)), 
                        hash(p + vec3(1.0, 0.0, 0.0)), f.x),
@@ -223,24 +224,24 @@ float noise(in vec3 x)
 float fractn(in vec3 p)
 {
     float f = 0.0;
-    p = p * 3.0;
-    f += 0.25000 * noise(p); p = 2.0 * p;
+    vec3 pp = p * 3.0;
+    f += 0.25 * noise(pp); p = 2.0 * pp;
     
     return f;
 }
 
-float scattering(in vec3 ro, in vec3 rd)
+float scattering(in vec3 ray_origin, in vec3 ray_direction)
 {
     const int samples = 16;
-    float sampleDist = 1.0;
-    float acum = 0.0;
+    float sample_distance = 1.0;
+    float acumulation = 0.0;
     for(int i = 0; i < samples; ++i)
     {
-        float idx = float(i) / float(samples);
-        acum += fractn(ro + (rd * (idx * sampleDist)));
+        float index = float(i) / float(samples);
+        acumulation += fractn(ray_origin + (ray_direction * (index * sample_distance)));
     }
     
-    return acum / float(samples);
+    return acumulation / float(samples);
 }
 
 /*
@@ -258,19 +259,19 @@ float calculate_clouds_plane(in vec3 origin, in vec3 direction)
 
     float hit = 0.0;
     
-    float dotP = dot(direction, normal);
-    if(dotP == 0.0)
+    float dot_product = dot(direction, normal);
+    if(dot_product == 0.0)
     {
         return hit;
     }
     
-    float distToHit = dot(point - origin, normal) / dotP;
-    if(distToHit < 0.0)
+    float distance_to_hit = dot(point - origin, normal) / dot_product;
+    if(distance_to_hit < 0.0)
     {
         return hit;
     }
     
-    hit = distToHit;
+    hit = distance_to_hit;
     
     return hit;
 }
@@ -334,7 +335,7 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
     vec3 halfwayDir = normalize(lightDir + viewDir);
     vec3 specular = pow(max(-dot(surfaceNormal, halfwayDir), 0.0), material.shininess) * material.specular * objectColor * lightIntensity;
     
-    vec3 fresnel = calculate_fresnel(surfaceNormal, surfacePointPosition, 0.001);
+    vec3 fresnel = calculate_fresnel(surfaceNormal, surfacePointPosition, 1e-6);
 
     vec3 color = diffuse + specular + ambient + fresnel;
     
@@ -347,12 +348,12 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
 
 bool intersect_plane(in Plane plane, in vec3 origin, in vec3 rayDirection, out float hitDistance, out vec3 Phit) 
 { 
-    float denom = dot(plane.normal, rayDirection);
-    if (denom < 1e-6)
+    float denominator = dot(plane.normal, rayDirection);
+    if (denominator < 1e-6)
     {
         vec3 p0l0 = plane.position - origin;
 
-        hitDistance = dot(p0l0, plane.normal) / denom;
+        hitDistance = dot(p0l0, plane.normal) / denominator;
 
         if(hitDistance >= 0.0)
         {
@@ -383,6 +384,7 @@ bool intersect_sphere(in vec3 origin, in vec3 direction, in Sphere sphere, out f
         if (t0 > t1) 
         {
         	float temp = t0;
+            
             t0 = t1;
             t1 = temp;
         } 
@@ -390,7 +392,11 @@ bool intersect_sphere(in vec3 origin, in vec3 direction, in Sphere sphere, out f
         if (t0 < 0.0)
         { 
             t0 = t1;
-            if (t0 < 0.0) return false;
+            
+            if (t0 < 0.0)
+            {
+                return false;
+            }
         }  
              
         dist = t0;
@@ -409,10 +415,12 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
     vec3 shadowSurfaceNormal;
     vec3 shadowRay = pointlights[0].position - pHit;
     vec3 shadowRayDirection = normalize(shadowRay);
-    float distanceToLight = sqrt(dot(shadowRay, shadowRay));
-    vec3 shadowPhit;
     
-    float dist;
+    float distanceToLight = sqrt(dot(shadowRay, shadowRay));
+    
+    OUT vec3 shadowPhit;
+    
+    OUT float dist;
     
     for(int i = 0; i < planes.length(); ++i)
 	{
@@ -452,35 +460,6 @@ vec3 get_reflection(in vec3 direction, in vec3 surface_normal)
     return reflect(direction, surface_normal);
 }
 
-/*vec3 get_refraction(in vec3 direction, in vec3 surface_normal)
-{
-    float eta1 = 1.0;
-    float eta2 = 1.9;
-    float eta = eta1 / eta2;
-    
-    float c1 = dot(surface_normal, direction);
-    if (c1 < 0.0)
-    {
-        c1 = -c1;
-    }
-    else
-    {
-        surface_normal = -surface_normal;
-        eta = 1.0 / eta;
-    }    
-    
-   	float theta = acos(c1);
-    
-    float k = 1.0 - eta * eta * sin(theta) * sin(theta);
-    if (k < 0.0) 
-        return vec3(0.0);
-    
-    float c2 = sqrt(k);
-    
-    vec3 ret = eta * direction + surface_normal * (eta * c1 - c2);
-    
-    return ret; 
-}*/
 vec3 get_refraction(in vec3 direction, in vec3 surface_normal, in float ior)
 {
     return refract(direction, surface_normal, ior); 
