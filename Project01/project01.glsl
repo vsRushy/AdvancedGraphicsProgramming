@@ -346,6 +346,18 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
     return color;
 }
 
+/*
+ *   Plane intersection function.
+ *
+ *   @param[IN] Ray origin.
+ *   @param[IN] Ray direction.
+ *   @param[IN] Sphere object.
+ *   @param[OUT] Distance between the ray origin and the sphere hit.
+ *   @param[OUT] Normal of the sphere hit.
+ *   @param[OUT] Hit position of the sphere.
+ *
+ *   @return True if the ray intersected with a plane. Otherwise, it returns false.
+ */
 bool intersect_plane(in Plane plane, in vec3 origin, in vec3 rayDirection, out float hitDistance, out vec3 Phit) 
 { 
     float denominator = dot(plane.normal, rayDirection);
@@ -368,7 +380,19 @@ bool intersect_plane(in Plane plane, in vec3 origin, in vec3 rayDirection, out f
     return false;
 }
 
-bool intersect_sphere(in vec3 origin, in vec3 direction, in Sphere sphere, out float dist, out vec3 surfaceNormal, out vec3 Phit)
+/*
+ *   Sphere intersection function.
+ *
+ *   @param[IN] Ray origin.
+ *   @param[IN] Ray direction.
+ *   @param[IN] Sphere object.
+ *   @param[OUT] Distance between the ray origin and the sphere hit.
+ *   @param[OUT] Normal of the sphere hit.
+ *   @param[OUT] Hit position of the sphere.
+ *
+ *   @return True if the ray intersected with a sphere. Otherwise, it returns false.
+ */
+bool intersect_sphere(in vec3 origin, in vec3 direction, in Sphere sphere, out float dist, out vec3 surface_normal, out vec3 hit)
 {
     vec3 L = origin - sphere.position;
     
@@ -401,8 +425,8 @@ bool intersect_sphere(in vec3 origin, in vec3 direction, in Sphere sphere, out f
              
         dist = t0;
        
-        Phit = origin + dist * direction;
-        surfaceNormal = normalize(Phit - sphere.position);               
+        hit = origin + dist * direction;
+        surface_normal = normalize(hit - sphere.position);               
         
         return true;
     }  
@@ -410,7 +434,16 @@ bool intersect_sphere(in vec3 origin, in vec3 direction, in Sphere sphere, out f
     return false;
 }
 
-void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int type, in int index)
+/*
+ *   Given a light point, this funcion calculates the shadow of the objects that the light hits.
+ *
+ *   @param[IN] Position of the hit when a ray hits an object.
+ *   @param[OUT] Color of the shadow.
+ *   @param[IN] Ambient color of the material of the object hit.
+ *   @param[IN] Object type.
+ *   @param[IN] Index of the object, to identify what object the ray hit.
+ */
+void calculateShadow(in vec3 pHit, out vec3 final_color, in float ambient, in int type, in int index)
 {
     vec3 shadowSurfaceNormal;
     vec3 shadowRay = pointlights[0].position - pHit;
@@ -433,7 +466,7 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
         {    
             if (dist < distanceToLight)
             {                
- 				finalColor *= 0.25 * ambient;
+ 				final_color *= 0.25 * ambient;
             }
         }
     }
@@ -449,22 +482,48 @@ void calculateShadow(in vec3 pHit, out vec3 finalColor, in float ambient, in int
         {
             if (dist > 0.0 && dist < distanceToLight)
             {
-            	finalColor *= 0.25 * ambient;
+            	final_color *= 0.25 * ambient;
             }
         }
     }
 }
 
+/*
+ *   Simple wrap of the GLSL reflect function.
+ *
+ *   @param[IN] Ray direction.
+ *   @param[IN] Surface normal.
+ *
+ *   @return Reflected vector.
+ */
 vec3 get_reflection(in vec3 direction, in vec3 surface_normal)
 {
     return reflect(direction, surface_normal);
 }
 
+/*
+ *   Simple wrap of the GLSL refract function.
+ *
+ *   @param[IN] Ray direction.
+ *   @param[IN] Surface normal.
+ *   @param[IN] Index of refraction.
+ *
+ *   @return Refracted vector.
+ */
 vec3 get_refraction(in vec3 direction, in vec3 surface_normal, in float ior)
 {
     return refract(direction, surface_normal, ior); 
 }
 
+/*
+ *   This function is the responsible for launching the rays. It calculates the final color of
+ *   the screen, calculating intersections with different objects and creating the sky.
+ *
+ *   @param[IN] Origin of the ray.
+ *   @param[IN] Direction of the ray.
+ *
+ *   @return Final color.
+ */
 vec3 create_ray(in vec3 origin, in vec3 direction)
 {
     vec3 result = vec3(0.0);
@@ -566,7 +625,8 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         }
 
         origin = bounce_pass_hit/* + surface_normal * 1e-3*/;
-
+        
+        // Depending on the object's material, apply reflection or refraction
         switch(get_material(current_type, current_index).type)
         {
             case MATERIAL_REFLECTIVE:
@@ -599,30 +659,31 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
         vec3 top_color = vec3(0.8, 0.4, 1.0);
         vec3 bot_color = vec3(0.85, 0.9, 1.0);
         vec3 m = mix(bot_color, top_color, direction.y);
-        vec3 cloudColor = vec3(1.0);
         
-        float dPlane = calculate_clouds_plane(camera.position, normalize(direction - origin));
+        vec3 cloud_color = vec3(1.0);
         
-        if(dPlane > 0.0)
+        float p = calculate_clouds_plane(camera.position, normalize(direction - origin));
+        
+        if(p > 0.0)
         {
-            // Sample noise and modulate noise
-            vec3 pos = camera.position + (normalize(direction - origin) * dPlane);
-            vec2 off = vec2(iTime, iTime) * vec2(-10.0, 0.0);
-            float n = fractn(vec3(pos.x + off.x, pos.y, pos.z + off.y) * 0.002);
+            // Noise
+            vec3 position = camera.position + normalize(direction - origin) * p;
+            vec2 offset = vec2(iTime, iTime) * vec2(-10.0, 0.0);
+            float n = fractn(vec3(position.x + offset.x, position.y, position.z + offset.y) * 0.002);
             
             n = smoothstep(0.25, 1.0, n);
-            cloudColor = mix(m, vec3(1.0), n);
+            cloud_color = mix(m, vec3(1.0), n);
 
-            // Fade with distance
-            float alpha = abs(1.0 - clamp(dPlane / 5000.0, 0.0, 1.0));
+            // Fade
+            float alpha = abs(1.0 - clamp(p / 5000.0, 0.0, 1.0));
             
-            cloudColor = mix(m, cloudColor, alpha);
+            cloud_color = mix(m, cloud_color, alpha);
 
-            // Cloud Scattering
-            float scat = scattering(vec3(pos.x + off.x, pos.y, pos.z + off.y) * 0.002, normalize(direction - origin));
-            scat = smoothstep(0.0, 0.7, scat);
+            // Scattering
+            float scatter = scattering(vec3(position.x + offset.x, position.y, position.z + offset.y) * 0.002, normalize(direction - origin));
+            scatter = smoothstep(0.0, 0.7, scatter);
             
-            return mix(m, cloudColor * scat, alpha);
+            return mix(m, cloud_color * scatter, alpha);
         }
     }
 }
@@ -636,7 +697,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     float aspect_ratio = iResolution.x / iResolution.y;
     vec2 uv = fragCoord/iResolution.xy - 0.5;
     uv.x *= aspect_ratio;
-
+    
     camera.position = vec3(sin(iTime), 0.0, -cos(iTime));
     
     vec3 ray_origin = camera.position;
