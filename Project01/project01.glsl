@@ -319,23 +319,35 @@ vec3 calculate_fresnel(in vec3 surface_normal, in vec3 surface_point_position, i
     return vec3(intensity + (1.0 - intensity) * pow(1.0 - dot(-surface_normal, normalize(surface_point_position - camera.position)), 5.0));
 }
 
-vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColor, in PointLight pointLight, in vec3 surfaceNormal, in Material material)
+/*
+ *   This function determines the color of an object, taking into account its materials and lighting.
+ *
+ *   @param[IN] The direction of the incident ray.
+ *   @param[IN] The position point of the surface.
+ *   @param[IN] The defined color of the current object.
+ *   @param[IN] The point light object.
+ *   @param[IN] The normal of the current object.
+ *   @param[IN] The material of the current object.
+ *
+ *   @return The final color of an object.
+ */
+vec3 get_color(in vec3 view_direction, in vec3 surface_point_position, in vec3 object_color, in PointLight point_light, in vec3 surface_normal, in Material material)
 {
-    vec3 lightVector = surfacePointPosition - pointLight.position;
-    vec3 lightDir = normalize(lightVector);   
+    vec3 light_vector = surface_point_position - point_light.position;
+    vec3 light_direction = normalize(light_vector);   
     
-   	float lightIntensity = (pow(0.1, 2.0) / pow(sqrt(dot(lightVector, lightVector)), 2.0)) * pointLight.intensity;
+   	float light_intensity = (pow(0.1, 2.0) / pow(sqrt(dot(light_vector, light_vector)), 2.0)) * point_light.intensity;
     
-    float coeff = -dot(lightDir, surfaceNormal);
+    float coeff = -dot(light_direction, surface_normal);
     
-    vec3 ambient = material.ambience * objectColor;
+    vec3 ambient = material.ambience * object_color;
 
-    vec3 diffuse = material.diffuse * max(coeff, 0.0) * objectColor * lightIntensity;
+    vec3 diffuse = material.diffuse * max(coeff, 0.0) * object_color * light_intensity;
        
-    vec3 halfwayDir = normalize(lightDir + viewDir);
-    vec3 specular = pow(max(-dot(surfaceNormal, halfwayDir), 0.0), material.shininess) * material.specular * objectColor * lightIntensity;
+    vec3 halfwayDir = normalize(light_direction + view_direction);
+    vec3 specular = pow(max(-dot(surface_normal, halfwayDir), 0.0), material.shininess) * material.specular * object_color * light_intensity;
     
-    vec3 fresnel = calculate_fresnel(surfaceNormal, surfacePointPosition, 1e-6);
+    vec3 fresnel = calculate_fresnel(surface_normal, surface_point_position, 1e-6);
 
     vec3 color = diffuse + specular + ambient + fresnel;
     
@@ -351,30 +363,30 @@ vec3 get_color(in vec3 viewDir, in vec3 surfacePointPosition, in vec3 objectColo
  *
  *   @param[IN] Ray origin.
  *   @param[IN] Ray direction.
- *   @param[IN] Sphere object.
- *   @param[OUT] Distance between the ray origin and the sphere hit.
- *   @param[OUT] Normal of the sphere hit.
- *   @param[OUT] Hit position of the sphere.
+ *   @param[IN] Plane object.
+ *   @param[OUT] Distance between the ray origin and the plane hit.
+ *   @param[OUT] Hit position of the plane.
  *
- *   @return True if the ray intersected with a plane. Otherwise, it returns false.
+ *   @return If the ray intersected with a plane, it returns true. Otherwise, it returns false.
  */
-bool intersect_plane(in Plane plane, in vec3 origin, in vec3 rayDirection, out float hitDistance, out vec3 Phit) 
+bool intersect_plane(in vec3 origin, in vec3 direction, in Plane plane, out float dist, out vec3 hit) 
 { 
-    float denominator = dot(plane.normal, rayDirection);
+    float denominator = dot(plane.normal, direction);
+    
     if (denominator < 1e-6)
     {
         vec3 p0l0 = plane.position - origin;
 
-        hitDistance = dot(p0l0, plane.normal) / denominator;
+        dist = dot(p0l0, plane.normal) / denominator;
 
-        if(hitDistance >= 0.0)
+        if(dist >= 0.0)
         {
-            Phit = origin + rayDirection * hitDistance;
+            hit = origin + direction * dist;
 
             return true;
         }
         
-        return (hitDistance >= 0.0); 
+        return (dist >= 0.0); 
     }
 
     return false;
@@ -390,7 +402,7 @@ bool intersect_plane(in Plane plane, in vec3 origin, in vec3 rayDirection, out f
  *   @param[OUT] Normal of the sphere hit.
  *   @param[OUT] Hit position of the sphere.
  *
- *   @return True if the ray intersected with a sphere. Otherwise, it returns false.
+ *   @return If the ray intersected with a sphere, it returns true. Otherwise, it returns false.
  */
 bool intersect_sphere(in vec3 origin, in vec3 direction, in Sphere sphere, out float dist, out vec3 surface_normal, out vec3 hit)
 {
@@ -443,10 +455,10 @@ bool intersect_sphere(in vec3 origin, in vec3 direction, in Sphere sphere, out f
  *   @param[IN] Object type.
  *   @param[IN] Index of the object, to identify what object the ray hit.
  */
-void calculateShadow(in vec3 pHit, out vec3 final_color, in float ambient, in int type, in int index)
+void calculateShadow(in vec3 hit, out vec3 final_color, in float ambient, in int type, in int index)
 {
     vec3 shadowSurfaceNormal;
-    vec3 shadowRay = pointlights[0].position - pHit;
+    vec3 shadowRay = pointlights[0].position - hit;
     vec3 shadowRayDirection = normalize(shadowRay);
     
     float distanceToLight = sqrt(dot(shadowRay, shadowRay));
@@ -462,7 +474,7 @@ void calculateShadow(in vec3 pHit, out vec3 final_color, in float ambient, in in
             continue;
         }
         
-        if (intersect_plane(planes[i], pHit, shadowRay, dist, shadowPhit))
+        if (intersect_plane(hit, shadowRay, planes[i], dist, shadowPhit))
         {    
             if (dist < distanceToLight)
             {                
@@ -478,7 +490,7 @@ void calculateShadow(in vec3 pHit, out vec3 final_color, in float ambient, in in
             continue;  
         }
     
-        if (intersect_sphere(pHit, shadowRay, spheres[i], dist, shadowSurfaceNormal, shadowPhit))
+        if (intersect_sphere(hit, shadowRay, spheres[i], dist, shadowSurfaceNormal, shadowPhit))
         {
             if (dist > 0.0 && dist < distanceToLight)
             {
@@ -555,7 +567,7 @@ vec3 create_ray(in vec3 origin, in vec3 direction)
                 continue;
             }
 
-            if(intersect_plane(planes[i], origin, direction, object_hit_distance, hit))
+            if(intersect_plane(origin, direction, planes[i], object_hit_distance, hit))
             {
                 if(object_hit_distance < dist)
                 {
