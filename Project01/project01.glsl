@@ -134,7 +134,7 @@ Camera camera = Camera(vec3(0.0, 0.0, -2.0), vec3(0.0), vec3(0.0), vec3(0.0), ve
 
 const Material material01 = Material(1.0, 1.0, 100.0, 1.0, 1.0, MATERIAL_REFLECTIVE);
 const Material material02 = Material(0.4, 1.0, 120.0, 0.3, 1.0, MATERIAL_REFRACTIVE);
-const Material material03 = Material(0.2, 1.0, 100.0, 0.4, 1.0, MATERIAL_REFRACTIVE);
+const Material material03 = Material(0.2, 1.0, 100.0, 0.4, 1.0, MATERIAL_REFLECTIVE);
 
 Plane plane01 = Plane(vec3(0.0, -0.2, 0.0), vec3(0.0, 1.0, 0.0), vec3(0.0), material03);
 
@@ -147,6 +147,7 @@ Plane planes[MAX_PLANES];
 Sphere spheres[MAX_SPHERES];
 PointLight pointlights[MAX_POINTLIGHTS];
 
+// Number of bounces for the reflection/refraction phases
 const int bounces = 2;
 
 // -----------------------------------------------------------------------------------
@@ -209,7 +210,7 @@ float noise(in vec3 x)
 {
     vec3 p = floor(x);
     vec3 f = fract(x);
-    f = f * f *(3.0 - 2.0 * f);
+    f = f * f * (3.0 - 2.0 * f);
 	
     return mix(mix(mix(hash(p + vec3(0.0)), 
                        hash(p + vec3(1.0, 0.0, 0.0)), f.x),
@@ -225,7 +226,9 @@ float fractn(in vec3 p)
 {
     float f = 0.0;
     vec3 pp = p * 3.0;
-    f += 0.25 * noise(pp); p = 2.0 * pp;
+    
+    f += 0.25 * noise(pp);
+    p = 2.0 * pp;
     
     return f;
 }
@@ -721,6 +724,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     vec3 center = ray_origin + camera.forward * camera.zoom;
     
 #ifdef ANTIALIASING
+    // For antialiasing, we calculate the color of the four adjacent points with a given offset of a pixel and calculate the average.
     vec3 intersection1 = center + (uv.x - 0.001) * camera.right + uv.y * camera.up;
     vec3 intersection2 = center + (uv.x + 0.001) * camera.right + uv.y * camera.up;
     vec3 intersection3 = center + uv.x * camera.right + (uv.y - 0.001) * camera.up;
