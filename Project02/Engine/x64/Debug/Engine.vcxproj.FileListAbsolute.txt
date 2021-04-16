@@ -1,2 +1,0 @@
-C:\Users\usuario\Documents\GitHub\AdvancedGraphicsProgramming\Project02\Engine\x64\Debug\Engine.exe
-C:\Users\usuario\Documents\GitHub\AdvancedGraphicsProgramming\Project02\Engine\x64\Debug\Engine.pdb
